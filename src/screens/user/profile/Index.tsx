@@ -1,29 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { Avatar } from "react-native-paper";
-
-import {
-  AntDesign,
-
-  Entypo,
-  Feather,
-  Ionicons,
-} from "@expo/vector-icons";
-import auth from "../../../stores/services/auth.services";
-import { Toolbar } from "../../../components";
+import { AntDesign, Entypo, Feather, Ionicons } from "@expo/vector-icons";
+import { Loading, Toolbar } from "../../../components";
 import { color as constants } from "../../../utils";
+import auth from "../../../service/auth.services";
+import { useAuth } from "../../../context/auth.context";
+
 
 export default function Profile(props: any) {
-  const [user, setUser] = useState({ full_name: "", email: "" });
-
-  useEffect(() => {
-    getUser();
-  }, []);
-
-  const getUser = async () => {
-    let userRaw = await auth.getToken();
-    setUser(JSON.parse(`${userRaw}`));
-  };
+  const { checkUserAuthentication } = useAuth();
 
   const lists = [
     {
@@ -53,9 +39,11 @@ export default function Profile(props: any) {
       icon: <Ionicons name="ios-locate" size={24} color="black" />,
     },
   ];
-  const signout = () => {
-    auth.logout();
-  };
+  const [loading, setLoading] = useState(false);
+  async function signout() {
+  auth.logout()
+  checkUserAuthentication()
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
@@ -261,9 +249,16 @@ export default function Profile(props: any) {
               }}
               onPress={signout}
             >
-              <AntDesign name="logout" size={24} color={constants.red} />
+              <View>
+                {loading ? (
+                  <Loading size={20} />
+                ) : (
+                  <AntDesign name="logout" size={24} color={constants.red} />
+                )}
+              </View>
               <Text
                 style={{
+                  flex: 1,
                   paddingLeft: 40,
                   fontWeight: "600",
                   fontSize: 16,

@@ -7,11 +7,11 @@ const { width, height } = Dimensions.get('window');
 export default function ItemsComponent(props: any) {
     const navigation = useNavigation<any>()
     const myItems = items.filter(f => f.title === props.category).map(x => x.children).flat()
-  
+
     return <View>
         <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
             {
-                myItems.map((x:any, i:number) => <TouchableOpacity key={i}
+                myItems.map((x: any, i: number) => <TouchableOpacity key={i}
                     style={{
                         width: '49%', marginBottom: 5,
                     }}

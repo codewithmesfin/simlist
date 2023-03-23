@@ -1,9 +1,8 @@
-
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-import React from 'react'
+import React from "react";
 import Notifications from "../screens/alerts/Notification";
-import Home from '../screens/home/Index';
+import Home from "../screens/home/Index";
 import Item from "../screens/items/Item";
 import ItemImage from "../screens/items/ItemImage";
 import Items from "../screens/items/Items";
@@ -14,17 +13,18 @@ import Chat from "../screens/messages/Chat";
 import Search from "../screens/search/Search";
 import Profile from "../screens/user/profile/Index";
 
-const Stack = createNativeStackNavigator();
+const Stack: any = createNativeStackNavigator();
 
 export default function PrivateRoute() {
-  return <Stack.Navigator>
-  <Stack.Screen
-    name="Home"
-    component={Home}
-    options={{ title: "Home", headerShown: false }}
-  />
-  
-  <Stack.Screen
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="Home"
+        component={Home}
+        options={{ title: "Home", headerShown: false }}
+      />
+
+      <Stack.Screen
         name="Item"
         component={Item}
         options={{ title: "Item", headerShown: false }}
@@ -57,27 +57,27 @@ export default function PrivateRoute() {
         component={ItemImage}
         options={{ title: "Item Image", headerShown: false }}
       />
-  
-
       <Stack.Screen
         name="Profile"
         component={Profile}
         options={{ title: "My Profile", headerShown: false }}
       />
-        <Stack.Screen
+
+      <Stack.Screen
         name="Notifications"
         component={Notifications}
         options={{ title: "My Notifications", headerShown: false }}
       />
-         <Stack.Screen
+      <Stack.Screen
         name="Search"
         component={Search}
         options={{ title: "Search", headerShown: false }}
       />
-           <Stack.Screen
+      <Stack.Screen
         name="Chat"
         component={Chat}
         options={{ title: "Chat", headerShown: false }}
       />
-  </Stack.Navigator>
+    </Stack.Navigator>
+  );
 }

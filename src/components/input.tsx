@@ -58,6 +58,7 @@ export default function Input({
             primary: "#2196f3",
           },
         }}
+       
       />
     </View>
   );

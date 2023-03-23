@@ -118,13 +118,19 @@ const Intro = (props: any) => {
             flexDirection: "row",
             justifyContent: "center",
             paddingBottom: 70,
+            alignItems: "center"
           }}
         >
           {Array.from(Array(4).keys()).map((key, index) => (
             <View
               style={[
                 styles.paginationDots,
-                { opacity: pageIndex === index ? 1 : 0.2 },
+                {
+                  opacity: pageIndex === index ? 1 : 0.2,
+                  height: pageIndex === index ? 15 : 10,
+                  width: pageIndex === index ? 15 : 10,
+
+                },
               ]}
               key={index}
             />
@@ -194,8 +200,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   paginationDots: {
-    height: 15,
-    width: 15,
     borderRadius: 20 / 2,
     backgroundColor: color.primary,
     marginLeft: 10,

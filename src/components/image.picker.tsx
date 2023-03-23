@@ -4,6 +4,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Entypo, Fontisto } from "@expo/vector-icons";
 import { color } from "../utils";
 import { Camera } from "expo-camera";
+import { useSnackbar } from "../context/snackbar.context";
 
 interface PROPS {
   onSelectOrTake: (e: string) => string;
@@ -11,48 +12,82 @@ interface PROPS {
 }
 
 export default function CustomImagePicker({ onSelectOrTake, canceled }: PROPS) {
-  const permisionFunction = async () => {
-    const cameraPermission: any = await Camera.requestCameraPermissionsAsync;
 
-    const imagePermission: any =
-      await ImagePicker.getMediaLibraryPermissionsAsync();
 
-    if (
-      imagePermission.status !== "granted" &&
-      cameraPermission.status !== "granted"
-    ) {
-      console.log("Permission for media access needed.");
+  const cameraPermissionHook: any = Camera.requestCameraPermissionsAsync()
+  const imagePermissionHook: any = ImagePicker.requestMediaLibraryPermissionsAsync()
+
+  const checkCameraPermission = async () => {
+    const cameraPermission = await cameraPermissionHook
+
+    if (cameraPermission.status !== "granted" && (cameraPermission.granted !== true)) {
+      canceled();
+      showSnackbar("Permission Error", "Camera Permission not granted.", 'error')
+      return false
+    }
+    else return true
+
+  };
+
+
+  const checkGalleryPermission = async () => {
+
+    const imagePermission = await imagePermissionHook
+
+    if (imagePermission.status !== "granted" && (imagePermission.granted !== true)) {
+      canceled();
+      showSnackbar("Permission Error", "Photo Permission not granted.", "error")
+      return false
+    }
+    else return true
+
+  };
+
+
+  const { openSnackbar } = useSnackbar();
+
+  const showSnackbar = (title, subtitle, type) => {
+    openSnackbar({
+      title: title,
+      subtitle: subtitle,
+      btnText: "OK",
+      type: type,
+    });
+  }
+
+
+  const pickImage = async () => {
+    const granted = await checkGalleryPermission()
+
+    if (granted) {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsEditing: false,
+        aspect: [4, 4],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        onSelectOrTake(result.assets[0].uri);
+      } else canceled();
     }
   };
 
-  useEffect(() => {
-    permisionFunction();
-  }, []);
-
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: false,
-      aspect: [4, 4],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      onSelectOrTake(result.assets[0].uri);
-    } else canceled();
-  };
-
   const takeImage = async () => {
-    let result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: false,
-      aspect: [4, 4],
-      quality: 1,
-    });
+    const granted = await checkCameraPermission()
 
-    if (!result.canceled) {
-      onSelectOrTake(result.assets[0].uri);
-    } else canceled();
+    if (granted) {
+      let result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsEditing: false,
+        aspect: [4, 4],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        onSelectOrTake(result.assets[0].uri);
+      } else canceled();
+    }
   };
 
   return (

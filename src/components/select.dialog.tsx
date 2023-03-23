@@ -21,10 +21,14 @@ const SelectDialog = (props: any) => {
             {props.btn ? props.btn :
                 <TouchableOpacity style={{
                     flexDirection: "row", justifyContent: "space-between",
-                    alignItems: "center", borderWidth: 1.2, borderColor:props.borderColor?props.borderColor: "grey",
+                    alignItems: "center",
+                     borderWidth:props.flat?0: 1,
+                     borderBottomWidth:1 ,
+                     borderColor:props.borderColor?props.borderColor: "grey",
                     height: 55, borderRadius: 5, padding: 15
                 }} onPress={toggleBottomNavigationView}>
-                    <Text style={{ fontSize: 16, color:props.titleColor?props.titleColor: "grey", fontWeight: "400",textTransform:"capitalize"}}> {props.title ? props.title : "Title"} </Text>
+                    <Text style={{ fontSize: 16, color:props.titleColor?props.titleColor: "grey", fontWeight: "400",
+                    textTransform: props.noCapitalization?'none' : "capitalize"}}> {props.title ? props.title : "Title"} </Text>
                     <FontAwesome name="sort-down" size={24} color="black" />
                 </TouchableOpacity>
             }

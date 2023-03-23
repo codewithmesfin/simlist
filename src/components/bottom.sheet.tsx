@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   bottomNavigationView: {
     backgroundColor: "#fff",
     width: "100%",
-    minHeight: 250,
+    minHeight: 180,
     justifyContent: "center",
     padding: 15,
   },

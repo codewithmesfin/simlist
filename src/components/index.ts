@@ -13,8 +13,8 @@ import ImagePicker from "./image.picker";
 import Checkbox from "./check.box";
 import RadioButton from "./radio.button";
 import SelectDialog from "./select.dialog";
-import Link from "./link";
-
+import BottomSnackbar from "./bottom.snackbar";
+import Dropdown from "./dropdown";
 export {
   Toolbar,
   Bottomsheet,
@@ -26,6 +26,12 @@ export {
   Loading,
   MiniNavbar,
   Filtersheet,
-  Card,ImagePicker,
-  Checkbox,RadioButton,SelectDialog
+  Card,
+  ImagePicker,
+  Checkbox,
+  RadioButton,
+  SelectDialog,
+  BottomSnackbar,
+  Dropdown,
 };
+
