@@ -26,28 +26,6 @@ const { width } = Dimensions.get("window");
 export default function Item(props: any) {
   const { payload } = props.route.params;
 
-  // console.log(payload)
-  const images = [
-    {
-      id: 0,
-      img: payload.img,
-      title: "JOIN AND CONNECT!",
-      subtitle:
-        "Here, nothing is impossible. Get your dream job, buy what you want, and sell what ever you want!",
-    },
-    {
-      id: 1,
-      img: "https://m.media-amazon.com/images/I/61KE5C1MQrL._AC_SY355_.jpg",
-      title: "Shopping Made Easy!",
-      subtitle: "A great place to buy and sell things you love !",
-    },
-    {
-      id: 2,
-      img: "https://ssl-product-images.www8-hp.com/digmedialib/prodimg/lowres/c06565881.png",
-      title: "Join Now",
-      subtitle: "Join Etyop for a better experience !",
-    },
-  ];
 
   const [sliderState, setSliderState] = useState({ currentPage: 0 });
 
@@ -103,25 +81,25 @@ export default function Item(props: any) {
                     setSliderPage(event);
                   }}
                 >
-                  {images.map((x: any, i: number) => (
+                  {payload.pictures.map((x: any, i: number) => (
                     <TouchableOpacity
                       key={i}
                       onPress={() =>
                         props.navigation.navigate("ItemImage", {
-                          images: images,
+                          images: payload.pictures.map(image => { return { img: `${constants.API_ROOT}${image.url}` } }),
                           title: payload.title,
                         })
                       }
                     >
                       <ImageBackground
-                        source={{ uri: x.img }}
+                        source={{ uri: `${constants.API_ROOT}${x.url}` }}
                         resizeMode="cover"
                         style={{
                           height: width,
                           width: width,
                         }}
                       >
-                        <View
+                        {payload.pictures.length > 1 && <View
                           style={{
                             position: "absolute",
                             bottom: 10,
@@ -142,22 +120,23 @@ export default function Item(props: any) {
                             }}
                           >
                             <View style={styles.paginationWrapper}>
-                              {Array.from(Array(images.length).keys()).map(
-                                (_key, index) => (
-                                  <View
-                                    style={[
-                                      styles.paginationDots,
-                                      {
-                                        opacity: pageIndex === index ? 1 : 0.2,
-                                      },
-                                    ]}
-                                    key={index}
-                                  />
-                                )
-                              )}
+                              {
+                                Array.from(Array(payload.pictures.length).keys()).map(
+                                  (_key, index) => (
+                                    <View
+                                      style={[
+                                        styles.paginationDots,
+                                        {
+                                          opacity: pageIndex === index ? 1 : 0.2,
+                                        },
+                                      ]}
+                                      key={index}
+                                    />
+                                  )
+                                )}
                             </View>
                           </View>
-                        </View>
+                        </View>}
                       </ImageBackground>
                     </TouchableOpacity>
                   ))}
@@ -165,7 +144,7 @@ export default function Item(props: any) {
               </View>
               <View style={{ paddingTop: 10 }}>
                 <View style={styles.paginationWrapper}>
-                  {Array.from(Array(images.length).keys()).map(
+                  {Array.from(Array(payload.pictures.length).keys()).map(
                     (_key, index) => (
                       <View
                         style={[
@@ -193,7 +172,7 @@ export default function Item(props: any) {
                     </Text>
                   </View>
                   <Text style={{ fontWeight: "800", fontSize: 16 }}>
-                    {formatter.number(payload.price)}{" "}
+                  {payload.currency}  {formatter.number(payload.price)}{" "}
                   </Text>
                   <Text
                     style={{ color: "grey", fontSize: 15, fontWeight: "600" }}
@@ -519,7 +498,7 @@ export default function Item(props: any) {
                 </View>
 
                 <View style={{ paddingTop: 20 }}>
-                  <ItemsComponent category={payload.category} />
+                  <ItemsComponent category={payload} />
                 </View>
               </View>
             </View>

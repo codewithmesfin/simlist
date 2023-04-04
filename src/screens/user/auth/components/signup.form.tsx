@@ -1,4 +1,5 @@
 import { gql, useMutation } from "@apollo/client";
+import { useNavigation } from "@react-navigation/native";
 import React, { useRef, useState } from "react";
 import { View } from "react-native";
 import PhoneInput from "react-native-phone-number-input";
@@ -20,8 +21,8 @@ const USER_QUERY = gql`
 `
 
 export default function SignupForm(props: any) {
+    const navigation:any=useNavigation()
     const phoneInput = useRef(null);
-
     const { checkUserAuthentication } = useAuth();
     const [signining, setSigninig] = useState(false)
     const [user, setUser] = useState({
@@ -29,59 +30,47 @@ export default function SignupForm(props: any) {
         lastName: "",
         email: "",
         password: "",
-        address: "",
-        mapUrl: "",
         phone: "",
         gender: "",
         avatar: "",
         birthdate: "",
-        status: "",
+        status: "pending",
     });
 
-    const [isValid, setIsValid] = useState({ gender: true })
+    const [isValid, setIsValid] = useState({
+        firstName: true, lastName: true, email: true, phone: true,
+        gender: true, password: true
+    })
 
 
-    const [Login] = useMutation(USER_QUERY, {
-        onCompleted: (data) => {
-            auth.setUser(data.login)
-            checkUserAuthentication()
-            setSigninig(false)
-        },
-        onError: (err) => {
-            console.log(err)
-            setSigninig(false)
-        }
-    });
-
-
-
-    const signin = () => {
-        setSigninig(true)
-        Login({
-            variables: {
-                "input": user
-            }
-        });
+    const signup = () => {
+     navigation.navigate("FinishSignup",{payload:user})
     }
 
     return (
         <View style={{ width: "100%" }}>
 
-            <View style={{ padding: 20, width: "100%", paddingBottom: 10 }}>
+            <View style={{ padding: 10, width: "100%", }}>
                 <Input mode label="First Name"
                     error={!validator.validateName(user.firstName) && user.firstName !== ""}
-                    onchange={(e: string) => setUser({ ...user, firstName: e })}
+                    onchange={(e: string) => {
+                        setIsValid({ ...isValid, firstName: validator.validateName(e) })
+                        setUser({ ...user, firstName: e })
+                    }}
                 />
             </View>
 
-            <View style={{ padding: 20, width: "100%", paddingBottom: 10 }}>
+            <View style={{ padding: 10, width: "100%", }}>
                 <Input mode label="Last Name"
                     error={!validator.validateName(user.lastName) && user.lastName !== ""}
-                    onchange={(e: string) => setUser({ ...user, lastName: e })}
+                    onchange={(e: string) => {
+                        setIsValid({ ...isValid, lastName: validator.validateName(e) })
+                        setUser({ ...user, lastName: e })
+                    }}
                 />
             </View>
 
-            <View style={{ padding: 20, width: "100%", paddingBottom: 10 }}>
+            <View style={{ padding: 10, width: "100%", paddingTop: 15 }}>
                 <PhoneInput
                     ref={phoneInput}
                     defaultValue={user.phone}
@@ -96,21 +85,24 @@ export default function SignupForm(props: any) {
                         borderRadius: 5,
                         elevation: 0,
                         backgroundColor: "white",
+                        padding: 4
                     }}
                     textContainerStyle={{
                         width: "100%",
                         elevation: 0,
                         backgroundColor: "white",
                         borderRadius: 5,
-                        paddingVertical: 5,
+                        paddingVertical: 10,
                         paddingBottom: 10,
                     }}
                     onChangeFormattedText={(text) => {
+                        setIsValid({ ...isValid, phone: validator.validatePhoneNumber(text) })
+                        setUser({ ...user, phone: text })
                     }}
                 />
             </View>
 
-            <View style={{ padding: 20, width: "100%", paddingBottom: 10 }}>
+            <View style={{ padding: 10, width: "100%", }}>
                 <SelectDialog
                     flat
                     title={
@@ -125,40 +117,47 @@ export default function SignupForm(props: any) {
                     ]}
                     height={280}
                     borderColor={isValid.gender ? "grey" : "red"}
-                    onselect={(e: any) => setUser({ ...user, gender: e.title })}
+                    onselect={(e: any) => {
+                        setIsValid({ ...isValid, gender: e !== "" })
+                        setUser({ ...user, gender: e.title })
+                    }}
                     titleColor={isValid.gender ? "grey" : "red"}
                 />
             </View>
 
-            <View style={{ padding: 20, width: "100%", paddingBottom: 30 }}>
-                <Dropdown />
-            </View>
 
-
-            <View style={{ padding: 20, width: "100%", paddingBottom: 10 }}>
+            <View style={{ padding: 10, width: "100%", }}>
                 <Input mode label="Email"
                     error={!validator.validateEmail(user.email) && user.email !== ""}
-                    onchange={(e: string) => setUser({ ...user, email: e })}
+                    onchange={(e: string) => {
+                        setIsValid({ ...isValid, email: validator.validateEmail(e) })
+                        setUser({ ...user, email: e })
+                    }}
                     keyboard="email-address"
                     placeholder="e.g. example@example.com"
                 />
             </View>
 
-            <View style={{ padding: 20, width: "100%", paddingBottom: 30 }}>
-                <Input mode label="Password"
-                    onchange={(e: string) => setUser({ ...user, password: e })}
+            <View style={{ padding: 10, width: "100%", paddingBottom: 30 }}>
+                <Input mode 
+                label="Password"
+                    onchange={(e: string) => {
+                        setIsValid({ ...isValid, password: validator.validatePassword(e) })
+                        setUser({ ...user, password: e })
+                    }}
                     password
+                    error={!validator.validatePassword(user.password) && user.password !== ""}
                 />
             </View>
 
-            <View style={{ padding: 15 }}>
+            <View style={{ padding: 10, paddingTop: 30 }}>
                 {signining ? (
                     <Loading />
                 ) : (
                     <Button
                         disabled={user.email === "" || !validator.validateEmail(user.email) || user.password === "" ? true : false}
                         title="Continue"
-                        onclick={signin}
+                        onclick={signup}
                     />
                 )}
             </View>

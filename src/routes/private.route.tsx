@@ -78,6 +78,8 @@ export default function PrivateRoute() {
         component={Chat}
         options={{ title: "Chat", headerShown: false }}
       />
+ 
+
     </Stack.Navigator>
   );
 }

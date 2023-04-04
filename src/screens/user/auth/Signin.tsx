@@ -5,7 +5,7 @@ import { color } from "../../../utils";
 import SigninForm from "./components/signin.form";
 
 
-const { width, height } = Dimensions.get("window");
+const {  height } = Dimensions.get("window");
 
 export default function Signin(props: any) {
 
@@ -42,7 +42,7 @@ export default function Signin(props: any) {
             <View>
               <SigninForm />
             </View>
-            <View style={{ padding: 20, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <View style={{ padding: 10, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
               <Text style={{ fontWeight: "500", fontSize: 16 }}>Forgot password? </Text>
               <TouchableOpacity onPress={() => props.navigation.navigate("ForgotPassword")}>
                 <Text style={{
@@ -50,10 +50,10 @@ export default function Signin(props: any) {
                 }}>Reset now</Text>
               </TouchableOpacity>
             </View>
-            <View style={{ padding: 20, }}>
+            <View style={{ padding: 10, }}>
               <View
                 style={{
-                  paddingBottom: 50,
+                  paddingBottom: 20,
                   flexDirection: "row",
                   justifyContent: "space-between",
                   alignItems: "center",

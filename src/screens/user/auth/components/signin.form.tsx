@@ -1,6 +1,6 @@
 import { gql, useMutation } from "@apollo/client";
 import React, { useRef, useState } from "react";
-import { View} from "react-native";
+import { View } from "react-native";
 
 
 import { Button, Input, Loading } from "../../../../components";
@@ -10,39 +10,39 @@ import { validator } from "../../../../utils";
 
 
 const USER_QUERY = gql`
-    mutation Login($input: LoginInput!) {
+    mutation Login($input:UsersPermissionsLoginInput!) {
       login(input: $input) {
-        id
-        token
+       jwt
       }
     }
 `
+
 
 export default function SigninForm(props: any) {
   const { checkUserAuthentication } = useAuth();
   const [signining, setSigninig] = useState(false)
   const [user, setUser] = useState({ email: "", password: "" });
 
-
   const [Login] = useMutation(USER_QUERY, {
     onCompleted: (data) => {
-      auth.setUser(data.login)
+      const response = {
+        __typename: data.login.__typename,
+        token: data.login.jwt
+      }
+      auth.setUser(response)
       checkUserAuthentication()
       setSigninig(false)
     },
     onError: (err) => {
-      console.log(err)
       setSigninig(false)
     }
   });
-
-
 
   const signin = () => {
     setSigninig(true)
     Login({
       variables: {
-        "input": user
+        "input": { identifier: user.email, password: user.password }
       }
     });
   }
@@ -50,21 +50,23 @@ export default function SigninForm(props: any) {
   return (
     <View style={{ width: "100%" }}>
 
-      <View style={{ padding: 20, width: "100%", paddingBottom: 10 }}>
-        <Input mode label="Email"
+      <View style={{ padding: 10, width: "100%", }}>
+        <Input
+          label="Email"
           error={!validator.validateEmail(user.email) && user.email !== ""}
           onchange={(e: string) => setUser({ ...user, email: e })}
           keyboard="email-address"
           placeholder="e.g. example@example.com"
+           mode
         />
       </View>
-      <View style={{ padding: 20, width: "100%", paddingBottom: 30 }}>
-        <Input mode label="Password"
+      <View style={{ padding: 10, width: "100%", paddingBottom: 20 }}>
+        <Input label="Password"
           onchange={(e: string) => setUser({ ...user, password: e })}
-          password
+          password  mode
         />
       </View>
-      <View style={{ padding: 15 }}>
+      <View style={{ padding: 10 }}>
         {signining ? (
           <Loading />
         ) : (

@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import React from "react";
 import Intro from "../screens/intro/Index";
+import FinishSignup from "../screens/user/auth/FinishSignup";
 import Signin from "../screens/user/auth/Signin";
 import Signup from "../screens/user/auth/Signup";
 
@@ -20,10 +21,15 @@ export default function PublicRoute() {
         component={Signin}
         options={{ title: "Signin", headerShown: false }}
       />
-        <Stack.Screen
+      <Stack.Screen
         name="Signup"
         component={Signup}
         options={{ title: "Signup", headerShown: false }}
+      />
+      <Stack.Screen
+        name="FinishSignup"
+        component={FinishSignup}
+        options={{ title: "Finish Signup", headerShown: false }}
       />
     </Stack.Navigator>
   );

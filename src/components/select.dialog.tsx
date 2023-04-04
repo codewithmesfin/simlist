@@ -6,6 +6,7 @@ import {
     Entypo, FontAwesome
 } from '@expo/vector-icons';
 import RadioButton from './radio.button';
+import { color } from '../utils';
 
 
 
@@ -19,18 +20,32 @@ const SelectDialog = (props: any) => {
     return (
         <View>
             {props.btn ? props.btn :
-                <TouchableOpacity style={{
-                    flexDirection: "row", justifyContent: "space-between",
-                    alignItems: "center",
-                     borderWidth:props.flat?0: 1,
-                     borderBottomWidth:1 ,
-                     borderColor:props.borderColor?props.borderColor: "grey",
-                    height: 55, borderRadius: 5, padding: 15
-                }} onPress={toggleBottomNavigationView}>
-                    <Text style={{ fontSize: 16, color:props.titleColor?props.titleColor: "grey", fontWeight: "400",
-                    textTransform: props.noCapitalization?'none' : "capitalize"}}> {props.title ? props.title : "Title"} </Text>
-                    <FontAwesome name="sort-down" size={24} color="black" />
-                </TouchableOpacity>
+                props.simpleBtn ?
+                    <TouchableOpacity style={{}} onPress={toggleBottomNavigationView}>
+                        <Text
+                            style={{
+                                fontSize: 18,
+                                fontWeight: "600",
+                                color: color.primary,
+                            }}
+                        >
+                            {props.simpleBtnText ? props.simpleBtnText : "Edit"}
+                        </Text>
+                    </TouchableOpacity>
+                    : <TouchableOpacity style={{
+                        flexDirection: "row", justifyContent: "space-between",
+                        alignItems: "center",
+                        borderWidth: props.flat ? 0 : 1,
+                        borderBottomWidth: 1,
+                        borderColor: props.borderColor ? props.borderColor : "grey",
+                        height: 55, borderRadius: 5, padding: 15
+                    }} onPress={toggleBottomNavigationView}>
+                        <Text style={{
+                            fontSize: 16, color: props.titleColor ? props.titleColor : "grey", fontWeight: "400",
+                            textTransform: props.noCapitalization ? 'none' : "capitalize"
+                        }}> {props.title ? props.title : "Title"} </Text>
+                        <FontAwesome name="sort-down" size={24} color="black" />
+                    </TouchableOpacity>
             }
 
             <View style={styles.container}>
@@ -40,11 +55,11 @@ const SelectDialog = (props: any) => {
                     onBackButtonPress={toggleBottomNavigationView}
                     onBackdropPress={toggleBottomNavigationView}
                 >
-                    <View style={[styles.bottomNavigationView, { height: props.height ? props.height : null,}]}>
+                    <View style={[styles.bottomNavigationView, { height: props.height ? props.height : null, }]}>
                         <View
                             style={{
                                 flex: 1,
-                                flexDirection: 'column',paddingBottom:100
+                                flexDirection: 'column', paddingBottom: 100
                             }}>
                             <View style={{ alignItems: "center" }}>
                                 <TouchableOpacity style={{
@@ -71,19 +86,20 @@ const SelectDialog = (props: any) => {
                                     <View >
                                         {
                                             props.items ?
-                                                props.items.map((x:any, i:number) => <TouchableOpacity  key={i} onPress={()=>{props.onselect(x)
+                                                props.items.map((x: any, i: number) => <TouchableOpacity key={i} onPress={() => {
+                                                    props.onselect(x)
                                                     toggleBottomNavigationView()
-                                                }}  style={{
-                                                    padding: 10,flexDirection:"row",alignItems:"center",justifyContent:"flex-start"
+                                                }} style={{
+                                                    padding: 10, flexDirection: "row", alignItems: "center", justifyContent: "flex-start"
                                                 }}>
-                                                    <View style={{width:40}}>
-                                                    {x.icon?x.icon:<RadioButton
-                                                     oncheck={() => {
-                                                            props.onselect(x);
-                                                            toggleBottomNavigationView();
-                                                        } } selected={undefined}  /> }
+                                                    <View style={{ width: 40 }}>
+                                                        {x.icon ? x.icon : <RadioButton
+                                                            oncheck={() => {
+                                                                props.onselect(x);
+                                                                toggleBottomNavigationView();
+                                                            }} selected={undefined} />}
                                                     </View>
-                                                   <Text style={{paddingLeft:10,fontSize:18,fontWeight:"500"}}>{x.title} </Text>
+                                                    <Text style={{ paddingLeft: 10, fontSize: 18, fontWeight: "500" }}>{x.title} </Text>
                                                 </TouchableOpacity>)
                                                 : <Text>No Option</Text>
                                         }
@@ -107,7 +123,7 @@ const styles = StyleSheet.create({
         margin: 2,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#E0F7FA',
+        // backgroundColor: '#E0F7FA',
 
     },
     bottomNavigationView: {

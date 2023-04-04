@@ -15,7 +15,8 @@ import { color } from "../../utils";
 const { width } = Dimensions.get("window");
 
 export default function ItemImage(props: any) {
-  const { images, title } = props.route.params;
+  let { images, title } = props.route.params;
+
   const [currentImage, setCurrentImage] = useState({ src: '', index: 0 });
 
   useEffect(() => setCurrentImage({ src: images[0].img, index: 0 }), []);
@@ -78,7 +79,7 @@ export default function ItemImage(props: any) {
       <View
         style={{
           flexDirection: "row",
-          justifyContent: "space-between",
+          justifyContent:"space-evenly",
           alignItems: "center",
         }}
       >

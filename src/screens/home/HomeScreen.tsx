@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,11 +8,109 @@ import {
   Dimensions,
 } from "react-native";
 import { Feather, Entypo, AntDesign, MaterialIcons } from "@expo/vector-icons";
-import items from "../../data/items";
+import sampleItems from "../../data/items";
 import { Bottomsheet, Filtersheet } from "../../components";
-import { color,  } from "../../utils";
+import { color, } from "../../utils";
+import gql from "graphql-tag";
+import { useQuery } from "@apollo/client";
+import { constants } from "../../utils";
 
 const { width } = Dimensions.get("window");
+
+
+const ITEM_QUERY = gql`
+  query GetAllItems {
+  categories{
+    data{
+      id
+      attributes{
+        name
+         items {
+        data{
+          id
+        attributes{
+          title
+          currency
+          price
+          description
+          condition
+          subcategory{
+            data{
+              id 
+              attributes{
+                name
+              }
+            }
+          }
+          marketplace{
+            data{
+              id
+              attributes{
+                name
+              }
+            }
+          }
+          pictures{
+            data{id
+            attributes{
+              url
+            }
+            }
+          }
+          owner{
+            data{
+              id
+              attributes{
+               email
+                firstName
+                lastName
+              }
+            }
+          }
+        }
+        }
+     } 
+      }
+    }
+  }
+}
+`
+
+interface PICTURE {
+  id: string
+  url?: string
+}
+
+interface ITEM {
+  id: string
+  title?: string
+  currency?: string
+  price?: number
+  description?: string
+  condition?: string
+  subcategory?: {
+    id: string
+    name?: string
+  }
+  marketplace?: {
+    id: string
+    name?: string
+  }
+  picture: PICTURE[]
+  owner: {
+    id: string
+    email?: string
+    firstName?: string
+    lastName?: string
+  }
+}
+
+interface CATEGORY {
+  id: string
+  name: string
+  items?: ITEM[]
+}
+
 
 export default function HomeScreen(props: any) {
   const sheetItems = [
@@ -33,6 +131,64 @@ export default function HomeScreen(props: any) {
       icon: <Feather name="list" size={24} color="black" />,
     },
   ];
+
+  const [items, setItems] = useState([])
+  const { data, loading, error } = useQuery<any>(
+    ITEM_QUERY,
+    { variables: {}, }
+  );
+
+  // console.log(data?.categories?.data)
+
+  useEffect(() => {
+    organizeData(data?.categories?.data)
+  }, [loading])
+
+
+  const organizeData = (arg) => {
+    if (!loading && !error) {
+      const itemsData:CATEGORY[]=arg.filter(f=>f.attributes.items?.data.length>0).map((cat:any)=>{
+        return {
+          id:cat.id,
+          title:cat.attributes.name,
+          items:cat.attributes.items?.data.map((x: any) => {
+              return {
+                id: x.id,
+                title: x?.attributes.title,
+                currency: x.attributes.currency,
+                price: x.attributes.price,
+                condition: x.attributes.condition,
+                category: {
+                  id: x.attributes.category?.data?.id,
+                  name: x.attributes.category?.data?.attributes?.name
+                },
+                subcategory: {
+                  id: x.attributes.subcategory?.data?.id,
+                  name: x.attributes.subcategory?.data?.attributes?.name
+                },
+                marketplace: {
+                  id: x.attributes.marketplace?.data?.id,
+                  name: x.attributes.marketplace?.data?.attributes?.name
+                },
+                pictures: x.attributes.pictures?.data.map(p => {
+                  return {
+                    id: p.id, url: p.attributes.url
+                  }
+                }),
+                owner: {
+                  id: x.attributes.owner.data.id,
+                  email: x.attributes.owner.data?.attributes.email,
+                  firstName: x.attributes.owner.data?.attributes.firstName,
+                  lastName: x.attributes.owner.data?.attributes.lastName
+                }
+              }
+            })
+        }
+      })
+      setItems(itemsData)
+    }
+  }
+
   return (
     <View style={{ flex: 1 }}>
       <View>
@@ -72,7 +228,7 @@ export default function HomeScreen(props: any) {
                   fontSize: 16,
                 }}
               >
-               Add Item
+                Add Item
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -96,7 +252,7 @@ export default function HomeScreen(props: any) {
                   fontSize: 16,
                 }}
               >
-              Categories
+                Categories
               </Text>
             </TouchableOpacity>
           </View>
@@ -166,7 +322,7 @@ export default function HomeScreen(props: any) {
                   }}
                 >
                   <Text style={{ fontSize: 18, fontWeight: "700" }}>
-                    {y.title}{" "}
+                    {y.title}
                   </Text>
                   <Bottomsheet items={sheetItems} />
                 </View>
@@ -178,7 +334,7 @@ export default function HomeScreen(props: any) {
                     backgroundColor: "white",
                   }}
                 >
-                  {y.children.map((x: any, i: number) => (
+                  {y.items.map((x: any, i: number) => (
                     <TouchableOpacity
                       key={i}
                       style={{
@@ -187,13 +343,13 @@ export default function HomeScreen(props: any) {
                       }}
                       onPress={() =>
                         props.navigation.navigate("Item", {
-                          payload: { ...x, category: y.title },
+                          payload: { ...x, category: y.title,categoryId:y.id },
                         })
                       }
                     >
                       <View style={{ borderWidth: 1, borderColor: "#edf2f7" }}>
                         <Image
-                          source={{ uri: x.img }}
+                          source={{ uri: `${constants.API_ROOT}${x.pictures[x.pictures.length-1].url}` }}
                           style={{
                             height: width / 2.2,
                             width: "100%",
@@ -209,7 +365,7 @@ export default function HomeScreen(props: any) {
                         }}
                       >
                         <Text style={{ fontWeight: "800", fontSize: 18 }}>
-                          {x.price}{" "}
+                         {x.currency} {x.price}{" "}
                         </Text>
                         <Text
                           numberOfLines={1}

@@ -6,45 +6,90 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Alert,
 } from "react-native";
-import { color, constants } from "../../../utils";
+import { color, constants, jwt } from "../../../utils";
 import { MaterialIcons, AntDesign, Ionicons } from "@expo/vector-icons";
-import { Card, ImagePicker, Input, Modal } from "../../../components";
+import { Card, Checkbox, ImagePicker, Input, Loading, Modal } from "../../../components";
 import SelectDialog from "../../../components/select.dialog";
-
 import Tips from "./Tips";
-import stocks from "../../../data/stocks";
 import { useSnackbar } from "../../../context/snackbar.context";
 import gql from "graphql-tag";
 import { useMutation, useQuery } from "@apollo/client";
-
 import { ReactNativeFile } from 'apollo-upload-client';
 import * as mime from 'react-native-mime-types';
+import { usePopup } from "../../../context/popup.context";
+import { useAuth } from "../../../context/auth.context";
+import locations from "../../../data/locations";
 
 
 const width = Dimensions.get("window").width;
 
 
 const CATEGORY_QUERY = gql`
-    query GetAllCategories {
-      getAllCategories {
-        id
-        name
-        subcategories {
-          name
+     query GetAllCategories {
+      categories {
+        data{
           id
+        attributes{
+          name
+          subcategories{
+            data{
+              id
+              attributes{
+                name
+              }
+            }
+          }
+        }
         }
      } 
   }
 `
 
-const USER_QUERY = gql`
-    mutation UploadFile($file: Upload!) {
-  uploadFile(file: $file) {
-    path
+const MARKETPLACE_QUERY = gql`
+    query MyMarketplace($id:ID!) {
+      usersPermissionsUser(id: $id) {
+      data{
+        id
+        attributes{
+        marketplaces{
+          data{
+            id
+            attributes{
+              name
+            }
+          }
+        }
+        }
+      }
+      }
+    }
+`
+
+const PICTURE_QUERY = gql`
+   mutation($file: Upload!) {
+    upload(file: $file) {
+     data{
+      id
+      attributes{
+        url
+      }
+    }
+    }
   }
-}
+`
+
+const ITEM_QUERY = gql`
+  mutation CreateItem($input:ItemInput!) {
+      createItem(data: $input) {
+       data{
+        id
+        attributes{
+          title
+        }
+      }
+      }
+    }
 `
 
 interface CATEGORY_PROPS {
@@ -57,25 +102,77 @@ interface CATEGORY_PROPS {
 
 
 export default function AddItem(props: any) {
-  const [uploadFile] = useMutation(USER_QUERY, {
+  const storeLocation = props.route.params?.location ? props.route.params?.location : "Addis Ababa, Ethiopia"
+  const [uploading, setUploading] = useState(false)
+  const { token } = useAuth();
+
+
+  const [uploadFile] = useMutation(PICTURE_QUERY, {
     onCompleted: (data) => {
-      const pics: any = pictures.length > 0 ? [...pictures, ...[data.uploadFile.path]] : [data.uploadFile.path];
+      const image = `${constants.API_ROOT}${data.upload.data.attributes.url}`
+      const imageId = data.upload.data.id
+      setUploading(false)
+      const pics: any = pictures.length > 0 ? [...pictures, ...[image]] : [image];
+      const picIds: any = item.pictures.length > 0 ? [...item.pictures, ...[imageId]] : [imageId];
+      console.log(picIds)
       setPictures(pics);
-      setItem({ ...item, pictures: pics })
+      setItem({ ...item, pictures: picIds })
     },
     onError: (err) => {
-      console.log("Error:", err)
+      setUploading(false)
+      console.log("Uploading Error:", err)
+    }
+  });
+
+  const [saving, setSaving] = useState(false)
+  const [CreateItem] = useMutation(ITEM_QUERY, {
+    onCompleted: (data) => {
+      setSaving(false)
+      showPopup(
+        "Success",
+        `Your item has been posted on Simlist. Your post will be visible public in short time after Simlist team reviews it and fits our terms, policies and conditions.`,
+        "success"
+      )
+    },
+    onError: (err) => {
+      setSaving(false)
+      // console.log("Errow: ", err)
+      showSnackbar(
+        "System Problem",
+        'Dear customer, we are unable to submit your item information right now. Try again later. thank you for using Simlist.',
+        "error"
+      )
     }
   });
 
 
   const { data, loading, error } = useQuery<any>(CATEGORY_QUERY);
 
-  const categories: CATEGORY_PROPS[] = data?.getAllCategories
+  const decodedAccessToken: any = jwt.decode(token)
+
+  const { data: myMarketplaces, loading: marketplaceloading, error: marketplaceError } = useQuery<any>(
+    MARKETPLACE_QUERY,
+    { variables: { id: decodedAccessToken.id }, }
+  );
+
+  const rawData = data?.categories?.data ? data?.categories?.data : []
+  const categories: CATEGORY_PROPS[] = rawData.map(x => {
+    return {
+      id: x.id,
+      name: x.attributes.name,
+      subcategories: x.attributes.subcategories.data.map(y => {
+        return {
+          id: y.id, name: y.attributes.name
+        }
+      })
+    }
+  })
 
   const getCategory = () => {
     return categories?.map((x: CATEGORY_PROPS) => {
-      return { id: x.id, title: x.name }
+      return {
+        id: x.id, title: x.name
+      }
     })
   }
 
@@ -84,6 +181,23 @@ export default function AddItem(props: any) {
     return targetCategory?.subcategories.map((x: CATEGORY_PROPS) => {
       return { id: x.id, title: x.name }
     })
+  }
+
+
+  const userMarketplaces = myMarketplaces?.usersPermissionsUser?.data?.attributes?.marketplaces?.data ?
+    myMarketplaces?.usersPermissionsUser?.data?.attributes?.marketplaces?.data : []
+
+
+
+  const getMarketplaces = () => {
+    const filteredMarketplaces = userMarketplaces.map((x: any) => {
+      return {
+        id: x.id,
+        title: x.attributes.name
+      }
+    })
+    // console.log("mk:", userMarketplaces)
+    return filteredMarketplaces
   }
 
   const [pictures, setPictures] = useState([]);
@@ -118,13 +232,13 @@ export default function AddItem(props: any) {
     condition: "",
     subcondition: "",
     description: "",
-    location: "",
+    location: storeLocation,
     marketplace: "",
     marketplaceId: "",
-    pictures: pictures
+    pictures: pictures,
+    quantity: 1,
+    delivery: true
   });
-
-
 
   const validateAllFields = () => {
     const validFields = {
@@ -137,12 +251,13 @@ export default function AddItem(props: any) {
       marketplace: item.marketplace !== "" && isValid.marketplace,
       location: item.location !== "" && isValid.location,
       description: item.description !== "" && isValid.description,
-      pictures: pictures.length > 0,
+      pictures: item.pictures.length > 0,
     };
     setIsValid({
       ...isValid,
       ...validFields,
     });
+
     return (
       validFields.title &&
       validFields.price &&
@@ -168,23 +283,53 @@ export default function AddItem(props: any) {
 
   //Upload Pictures
   const uploadPicture = async (src) => {
+
+    setUploading(true)
+    setShowImagePicker(!showImagePicker)
     const extension = src.split(".").pop();
     const file = generateRNFile(src, `file-${Date.now()}.${extension}`);
 
     try {
       await uploadFile({
         variables: { file },
+        // headers: {"Authorization":"Bearer sadfg"},
       });
       setShowImagePicker(false);
-      console.log('Uploaded', item)
+      // console.log('Uploaded', item)
     } catch (e) {
-      console.log('Error')
+      console.log('Upload Error', e)
     }
-
   }
 
-  const submit = () => {
-    if (validateAllFields()) console.log(true);
+
+  const submit = async () => {
+    // console.log(item)
+    if (validateAllFields()) {
+      const decodedToken: any = jwt.decode(token)
+
+      const itemData = {
+        "category": item.categoryId,
+        "subcategory": item.subcategoryId,
+        "title": item.title,
+        "description": item.description,
+        "condition": item.condition,
+        "price": parseFloat(`${item.price}`),
+        "currency": item.currency,
+        "pictures": item.pictures,
+        "owner": decodedToken.id,
+        "delivery": item.delivery,
+        "quantity": parseInt(`${item.quantity}`),
+        "marketplace": item.marketplaceId
+      }
+
+      setSaving(true)
+      await CreateItem({
+        variables: {
+          "input": itemData
+        },
+      });
+    }
+
     else {
       showSnackbar(
         "Form Validation Error",
@@ -205,6 +350,31 @@ export default function AddItem(props: any) {
       type: type,
     });
   }
+
+  const { openPopup } = usePopup();
+  const showPopup = (title, subtitle, type) => {
+    openPopup({
+      title: title,
+      subtitle: subtitle,
+      btnText: "Continue",
+      type: type,
+      navigate: "Home"
+    });
+  }
+
+  const UploadIndicator = () => <View style={{
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 40,
+    width: 40,
+    borderRadius: 50 / 2, padding: 2,
+    backgroundColor: 'white', borderWidth: 2, borderColor: color.primary
+  }}>
+    <Loading size={16} />
+  </View>
+
+
 
   return (
     <View style={{ backgroundColor: "white", flex: 1 }}>
@@ -229,17 +399,21 @@ export default function AddItem(props: any) {
             </Text>
           </TouchableOpacity>
           <Text style={{ fontSize: 18 }}>New item</Text>
-          <TouchableOpacity onPress={submit}>
-            <Text
-              style={{
-                color: color.primary,
-                fontSize: 18,
-                fontWeight: "700",
-              }}
-            >
-              Publish
-            </Text>
-          </TouchableOpacity>
+          {saving ?
+            <View>
+              <Loading />
+            </View>
+            : <TouchableOpacity onPress={submit}>
+              <Text
+                style={{
+                  color: color.primary,
+                  fontSize: 18,
+                  fontWeight: "700",
+                }}
+              >
+                Publish
+              </Text>
+            </TouchableOpacity>}
         </View>
         <View>
           <ScrollView
@@ -248,10 +422,11 @@ export default function AddItem(props: any) {
           >
             <View style={{ paddingBottom: 100 }}>
               <View style={{ padding: 15 }}>
-                {pictures.length < 1 ? (
-                  <View>
-                    <TouchableOpacity
-                      style={{
+                {
+                  pictures.length < 1 ?
+
+                    uploading ?
+                      <View style={{
                         flexDirection: "row",
                         alignItems: "center",
                         justifyContent: "center",
@@ -259,100 +434,116 @@ export default function AddItem(props: any) {
                         borderWidth: 1.2,
                         borderColor: isValid.pictures ? "#DDDDDD" : "red",
                         borderRadius: 8,
-                      }}
-                      onPress={() => setShowImagePicker(!showImagePicker)}
-                    >
-                      <MaterialIcons
-                        name="add-to-photos"
-                        size={30}
-                        color="black"
-                      />
-                      <Text
-                        style={{
-                          paddingLeft: 10,
-                          fontSize: 18,
-                          fontWeight: "500",
-                        }}
-                      >
-                        Add Photos
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <ScrollView showsHorizontalScrollIndicator={false} horizontal>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "space-evenly",
-                        height: 150,
-                        borderWidth: 1.2,
-                        borderColor: "#DDDDDD",
-                        borderRadius: 8,
-                        padding: 10,
-                        minWidth: width - 30,
-                      }}
-                    >
-                      {pictures.map((x: any, i: number) => (
-                        <View key={i} style={{ marginRight: 10 }}>
-                          <Card
+                      }}>
+                        <UploadIndicator />
+                      </View>
+                      : (
+                        <View>
+                          <TouchableOpacity
                             style={{
-                              height: 120,
-                              width: "100%",
-                              minWidth: 110,
-                              borderRadius: 10,
+                              flexDirection: "row",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              height: 150,
+                              borderWidth: 1.2,
+                              borderColor: isValid.pictures ? "#DDDDDD" : "red",
+                              borderRadius: 8,
                             }}
-                            children={
-                              <ImageBackground
-                                source={{ uri: x }}
-                                resizeMode="cover"
+                            onPress={() => setShowImagePicker(!showImagePicker)}
+                          >
+                            <MaterialIcons
+                              name="add-to-photos"
+                              size={30}
+                              color="black"
+                            />
+                            <Text
+                              style={{
+                                paddingLeft: 10,
+                                fontSize: 18,
+                                fontWeight: "500",
+                              }}
+                            >
+                              Add Photos
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                      <ScrollView showsHorizontalScrollIndicator={false} horizontal>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "space-evenly",
+                            height: 150,
+                            borderWidth: 1.2,
+                            borderColor: "#DDDDDD",
+                            borderRadius: 8,
+                            padding: 10,
+                            minWidth: width - 30,
+                          }}
+                        >
+                          {pictures.map((x: any, i: number) => (
+                            <View key={i} style={{ marginRight: 10 }}>
+                              <Card
                                 style={{
-                                  height: "100%",
+                                  height: 120,
                                   width: "100%",
+                                  minWidth: 110,
                                   borderRadius: 10,
                                 }}
-                              >
-                                <View
-                                  style={{
-                                    alignItems: "flex-end",
-                                    justifyContent: "center",
-                                    padding: 5,
-                                  }}
-                                >
-                                  <TouchableOpacity
+                                children={
+                                  <ImageBackground
+                                    source={{ uri: x }}
+                                    resizeMode="cover"
                                     style={{
-                                      backgroundColor: "white",
-                                      justifyContent: "center",
-                                      borderRadius: 100,
+                                      height: "100%",
+                                      width: "100%",
+                                      borderRadius: 10,
                                     }}
-                                    onPress={() => removePicture(x)}
                                   >
-                                    <AntDesign
-                                      name="closecircle"
-                                      size={24}
-                                      color="black"
-                                    />
-                                  </TouchableOpacity>
-                                </View>
-                              </ImageBackground>
-                            }
-                          />
+                                    <View
+                                      style={{
+                                        alignItems: "flex-end",
+                                        justifyContent: "center",
+                                        padding: 5,
+                                      }}
+                                    >
+                                      <TouchableOpacity
+                                        style={{
+                                          backgroundColor: "white",
+                                          justifyContent: "center",
+                                          borderRadius: 100,
+                                        }}
+                                        onPress={() => removePicture(x)}
+                                      >
+                                        <AntDesign
+                                          name="closecircle"
+                                          size={24}
+                                          color="black"
+                                        />
+                                      </TouchableOpacity>
+                                    </View>
+                                  </ImageBackground>
+                                }
+                              />
+                            </View>
+                          ))}
+                          {uploading ?
+                            <UploadIndicator />
+                            : <TouchableOpacity
+                              onPress={() => setShowImagePicker(!showImagePicker)}
+                              style={{
+                                height: 110,
+                                width: 110,
+                                justifyContent: "center",
+                                alignItems: "center",
+                              }}
+                            >
+                              <Ionicons name="add-circle" size={40} color="black" />
+                            </TouchableOpacity>}
                         </View>
-                      ))}
-                      <TouchableOpacity
-                        onPress={() => setShowImagePicker(!showImagePicker)}
-                        style={{
-                          height: 110,
-                          width: 110,
-                          justifyContent: "center",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Ionicons name="add-circle" size={40} color="black" />
-                      </TouchableOpacity>
-                    </View>
-                  </ScrollView>
-                )}
+                      </ScrollView>
+                    )}
                 <View style={{ paddingTop: 10 }}>
                   <Text>
                     Photos: {pictures.length}/10. Choose your listing's main
@@ -414,6 +605,18 @@ export default function AddItem(props: any) {
                       setItem({ ...item, currency: e.title });
                     }}
                     titleColor={isValid.currency ? "grey" : "red"}
+                  />
+                </View>
+
+                <View style={{ marginTop: 20 }}>
+                  <Input
+                    label="Quantity"
+                    keyboard="numeric"
+                    large
+                    value={`${item.quantity}`}
+                    onchange={(e: any) => {
+                      setItem({ ...item, quantity: e });
+                    }}
                   />
                 </View>
 
@@ -483,31 +686,11 @@ export default function AddItem(props: any) {
                         ? "marketplace"
                         : "marketplace" + ": " + item.marketplace
                     }
-                    items={stocks.map((x: any) => {
-                      return {
-                        title: x.title,
-                        icon: (
-                          <View
-                            style={{
-                              backgroundColor: "#edf2f7",
-                              width: 35,
-                              height: 35,
-                              borderRadius: 40 / 2,
-                              justifyContent: "center",
-                              alignItems: "center",
-                            }}
-                          >
-                            <Text style={{ fontSize: 15, fontWeight: "700" }}>
-                              {`${x.title}`.charAt(0)}{" "}
-                            </Text>
-                          </View>
-                        ),
-                      };
-                    })}
+
+                    items={getMarketplaces()}
                     height={450}
                     borderColor={isValid.marketplace ? "grey" : "red"}
                     onselect={(e: any) => {
-                      //  onMarketplaceChange(e.title)
                       setIsValid({ ...isValid, marketplace: e.title !== "" && e.title.length > 0 });
                       setItem({ ...item, marketplace: e.title, marketplaceId: e.id });
                     }}
@@ -528,6 +711,10 @@ export default function AddItem(props: any) {
                   />
                 </View>
 
+                <View style={{ marginTop: 20 }}>
+                  <Checkbox title="Offer item Delivery" selected={item.delivery} oncheck={() => setItem({ ...item, delivery: !item.delivery })} />
+                </View>
+
                 <View
                   style={{
                     marginTop: 20,
@@ -540,19 +727,23 @@ export default function AddItem(props: any) {
                     <Text style={{ fontSize: 20, fontWeight: "800" }}>
                       Location
                     </Text>
-                    <Text>Addis Ababa, Ethiopia</Text>
+                    <Text>{item.location} </Text>
                   </View>
-                  <TouchableOpacity style={{}}>
-                    <Text
-                      style={{
-                        fontSize: 18,
-                        fontWeight: "600",
-                        color: color.primary,
-                      }}
-                    >
-                      Edit
-                    </Text>
-                  </TouchableOpacity>
+
+                  <SelectDialog
+                    title={
+                      item.location === ""
+                        ? "location"
+                        : "location" + ": " + item.location
+                    }
+
+                    items={locations.map(x => { return { title: x } })}
+                    height={500}
+                    onselect={(e: any) => {
+                      setItem({ ...item, location: e.title });
+                    }}
+                    simpleBtn
+                  />
                 </View>
               </View>
 
@@ -600,6 +791,7 @@ export default function AddItem(props: any) {
             <View>
               <ImagePicker
                 onSelectOrTake={(src: string): any => {
+
                   uploadPicture(src)
                 }}
                 canceled={() => setShowImagePicker(false)}
