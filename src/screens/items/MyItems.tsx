@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -17,9 +17,120 @@ import {
 } from "@expo/vector-icons";
 import items from "../../data/items";
 import { Bottomsheet } from "../../components";
-import { color } from "../../utils";
+import { color, constants, groupData, jwt } from "../../utils";
+import { useAuth } from "../../context/auth.context";
+import gql from "graphql-tag";
+import { useQuery } from "@apollo/client";
 
 const { width } = Dimensions.get("window");
+
+const ITEM_QUERY = gql`
+  query myItems($id:ID!){
+usersPermissionsUser(id: $id){
+    data{
+      id
+      attributes{
+        items {
+        data{
+          id
+        attributes{
+          title
+          currency
+          price
+          description
+          condition
+          category{
+            data{
+              id
+              attributes{name}
+            }
+          }
+          subcategory{
+            data{
+              id 
+              attributes{
+                name
+              }
+            }
+          }
+          marketplace{
+            data{
+              id
+              attributes{
+                name
+                location
+              }
+            }
+          }
+          pictures{
+            data{id
+            attributes{
+              url
+            }
+            }
+          }
+          owner{
+            data{
+              id
+              attributes{
+               email
+                firstName
+                lastName
+                phone
+              avatar{
+                data{
+                  id
+                  attributes{url}
+                }
+              }
+              }
+            }
+          }
+        }
+        }
+     } 
+      }
+    }
+  }
+}
+`
+
+interface PICTURE {
+  id: string
+  url?: string
+}
+
+interface ITEM {
+  id: string
+  title?: string
+  currency?: string
+  price?: number
+  description?: string
+  condition?: string
+  subcategory?: {
+    id: string
+    name?: string
+  }
+  marketplace?: {
+    id: string
+    name?: string
+  }
+  picture: PICTURE[]
+  owner: {
+    id: string
+    email?: string
+    firstName?: string
+    lastName?: string
+  }
+}
+
+interface CATEGORY {
+  id: string
+  name: string
+  items?: ITEM[]
+}
+
+
 
 export default function MyItems(props: any) {
   const sheetItems = [
@@ -40,6 +151,64 @@ export default function MyItems(props: any) {
       icon: <Feather name="list" size={24} color="black" />,
     },
   ];
+  const { token } = useAuth();
+
+  const decodedAccessToken: any = jwt.decode(token)
+  // console.log(decodedAccessToken)
+
+  const { data, loading, error } = useQuery<any>(
+    ITEM_QUERY,
+    { variables: { id: decodedAccessToken.id }, }
+  );
+
+  const rawData = data?.usersPermissionsUser?.data?.attributes?.items?.data
+
+
+  const [items, setItems] = useState([])
+  useEffect(() => {
+    organizeData(rawData)
+  }, [loading])
+
+
+  const organizeData = (arg) => {
+    if (!loading && !error) {
+      const itemsData: CATEGORY[] = arg.map(x => {
+        return {
+          id: x.id,
+          title: x?.attributes.title,
+          currency: x.attributes.currency,
+          price: x.attributes.price,
+          condition: x.attributes.condition,
+          categoryId: x.attributes.category?.data?.id,
+          category: {
+            id: x.attributes.category?.data?.id,
+            name: x.attributes.category?.data?.attributes?.name
+          },
+          subcategory: {
+            id: x.attributes.subcategory?.data?.id,
+            name: x.attributes.subcategory?.data?.attributes?.name
+          },
+          marketplace: {
+            id: x.attributes.marketplace?.data?.id,
+            name: x.attributes.marketplace?.data?.attributes?.name
+          },
+          pictures: x.attributes.pictures?.data.map(p => {
+            return {
+              id: p.id, url: p.attributes.url
+            }
+          }),
+          owner: {
+            id: x.attributes.owner.data.id,
+            email: x.attributes.owner.data?.attributes.email,
+            firstName: x.attributes.owner.data?.attributes.firstName,
+            lastName: x.attributes.owner.data?.attributes.lastName
+          }
+        }
+      })
+      setItems(groupData.group(itemsData))
+    }
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
       <View>
@@ -91,7 +260,7 @@ export default function MyItems(props: any) {
                   borderBottomWidth: 2,
                   borderBottomColor: "#edf2f7",
                 }}
-                onPress={()=>props.navigation.navigate("Item")}
+                onPress={() => props.navigation.navigate("Item")}
               >
                 <View
                   style={{
@@ -114,7 +283,7 @@ export default function MyItems(props: any) {
                     backgroundColor: "white",
                   }}
                 >
-                  {y.children.map((x: any, i: number) => (
+                  {y.items.map((x: any, i: number) => (
                     <TouchableOpacity
                       key={i}
                       style={{
@@ -129,7 +298,7 @@ export default function MyItems(props: any) {
                     >
                       <View style={{ borderWidth: 1, borderColor: "#edf2f7" }}>
                         <Image
-                          source={{ uri: x.img }}
+                          source={{ uri: `${constants.API_ROOT}${x.pictures[x.pictures.length - 1].url}` }}
                           style={{
                             height: width / 2.2,
                             width: "100%",

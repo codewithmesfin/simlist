@@ -8,7 +8,7 @@ import {
   Dimensions,
 } from "react-native";
 import { Feather, Entypo, AntDesign, MaterialIcons } from "@expo/vector-icons";
-import sampleItems from "../../data/items";
+
 import { Bottomsheet, Filtersheet } from "../../components";
 import { color, } from "../../utils";
 import gql from "graphql-tag";
@@ -343,7 +343,7 @@ export default function HomeScreen(props: any) {
                       }}
                       onPress={() =>
                         props.navigation.navigate("Item", {
-                          payload: { ...x, category: y.title,categoryId:y.id },
+                          id:x.id,
                         })
                       }
                     >
@@ -402,7 +402,7 @@ export default function HomeScreen(props: any) {
                     marginTop: 5,
                   }}
                   onPress={() =>
-                    props.navigation.navigate("Items", { payload: y })
+                    props.navigation.navigate("Items", { id: y.id,title:y.title })
                   }
                 >
                   <Text

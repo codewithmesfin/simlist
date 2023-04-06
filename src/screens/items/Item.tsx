@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import {
   View,
@@ -21,10 +21,112 @@ import { color, constants, formatter } from "../../utils";
 import { Button, Card, Toolbar } from "../../components";
 import { Avatar } from "react-native-paper";
 import ItemsComponent from "./components/items.component";
+import gql from "graphql-tag";
+import { useQuery } from "@apollo/client";
 const { width } = Dimensions.get("window");
 
+
+
+const ITEM_QUERY = gql`
+query getItem($id:ID!){
+  item(id:$id){
+    data{
+      id
+      attributes{
+          title
+          currency
+          price
+          description
+          condition
+          category{
+            data{
+              id
+              attributes{
+                name
+              }
+            }
+          }
+          subcategory{
+            data{
+              id 
+              attributes{
+                name
+              }
+            }
+          }
+          marketplace{
+            data{
+              id
+              attributes{
+                name
+              }
+            }
+          }
+          pictures{
+            data{id
+            attributes{
+              url
+            }
+            }
+          }
+          owner{
+            data{
+              id
+              attributes{
+               email
+                firstName
+                lastName
+              }
+            }
+          }
+        }
+    }
+  }
+}
+`
+
+interface PICTURE {
+  id: string
+  url?: string
+}
+
+interface CATEGORY {
+  id: string
+  name: string
+}
+
+
+interface ITEM {
+  id: string
+  title?: string
+  currency?: string
+  price?: number
+  description?: string
+  condition?: string
+  category?: CATEGORY,
+  subcategory?: {
+    id: string
+    name?: string
+  }
+  marketplace?: {
+    id: string
+    name?: string
+  }
+  pictures: PICTURE[]
+  owner: {
+    id: string
+    email?: string
+    firstName?: string
+    lastName?: string
+  }
+}
+
+
+
+
+
 export default function Item(props: any) {
-  const { payload } = props.route.params;
+  const { id } = props.route.params;
 
 
   const [sliderState, setSliderState] = useState({ currentPage: 0 });
@@ -42,6 +144,64 @@ export default function Item(props: any) {
   };
   const { currentPage: pageIndex } = sliderState;
 
+
+
+  const { data, loading, error } = useQuery<any>(
+    ITEM_QUERY,
+    { variables: { id: id }, }
+  );
+
+
+
+  const rawData = data?.item?.data
+
+
+  const [item, setItem] = useState<any>({ pictures: [] })
+  useEffect(() => {
+    organizeData(rawData)
+  }, [loading])
+
+  const organizeData = (arg) => {
+
+    if (!loading && !error) {
+
+      const itemData: ITEM = {
+        id: arg.id,
+        title: arg.attributes.title,
+        currency: arg.attributes.currency,
+        price: arg.attributes.price,
+        condition: arg.attributes.condition,
+        category: {
+          id: arg.attributes.category?.data?.id,
+          name: arg.attributes.category?.data?.attributes?.name
+        },
+        subcategory: {
+          id: arg.attributes.subcategory?.data?.id,
+          name: arg.attributes.subcategory?.data?.attributes?.name
+        },
+        marketplace: {
+          id: arg.attributes.marketplace?.data?.id,
+          name: arg.attributes.marketplace?.data?.attributes?.name
+        },
+        pictures: arg.attributes.pictures?.data && arg.attributes.pictures?.data.length > 0
+          ? arg.attributes.pictures?.data.map(p => {
+            return {
+              id: p.id, url: p.attributes.url
+            }
+          }) : [],
+        owner: {
+          id: arg.attributes.owner.data.id,
+          email: arg.attributes.owner.data?.attributes.email,
+          firstName: arg.attributes.owner.data?.attributes.firstName,
+          lastName: arg.attributes.owner.data?.attributes.lastName
+        }
+      }
+      // console.log(itemData)
+      setItem(itemData)
+    }
+  }
+
+
   return (
     <View
       style={{
@@ -55,6 +215,7 @@ export default function Item(props: any) {
           profile={() => props.navigation.navigate("Profile")}
           back
         />
+
         <ScrollView
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
@@ -81,16 +242,21 @@ export default function Item(props: any) {
                     setSliderPage(event);
                   }}
                 >
-                  {payload.pictures.map((x: any, i: number) => (
+                  {item.pictures.map((x: any, i: number) => (
                     <TouchableOpacity
                       key={i}
                       onPress={() =>
                         props.navigation.navigate("ItemImage", {
-                          images: payload.pictures.map(image => { return { img: `${constants.API_ROOT}${image.url}` } }),
-                          title: payload.title,
+                          images: item.pictures.map(image => {
+                            return {
+                              img: `${constants.API_ROOT}${image.url}`
+                            }
+                          }),
+                          title: item.title,
                         })
                       }
                     >
+
                       <ImageBackground
                         source={{ uri: `${constants.API_ROOT}${x.url}` }}
                         resizeMode="cover"
@@ -99,7 +265,7 @@ export default function Item(props: any) {
                           width: width,
                         }}
                       >
-                        {payload.pictures.length > 1 && <View
+                        {item?.pictures.length > 1 && <View
                           style={{
                             position: "absolute",
                             bottom: 10,
@@ -121,7 +287,7 @@ export default function Item(props: any) {
                           >
                             <View style={styles.paginationWrapper}>
                               {
-                                Array.from(Array(payload.pictures.length).keys()).map(
+                                Array.from(Array(item?.pictures.length).keys()).map(
                                   (_key, index) => (
                                     <View
                                       style={[
@@ -144,7 +310,7 @@ export default function Item(props: any) {
               </View>
               <View style={{ paddingTop: 10 }}>
                 <View style={styles.paginationWrapper}>
-                  {Array.from(Array(payload.pictures.length).keys()).map(
+                  {Array.from(Array(item?.pictures.length).keys()).map(
                     (_key, index) => (
                       <View
                         style={[
@@ -165,14 +331,14 @@ export default function Item(props: any) {
                     }}
                   >
                     <Text style={{ fontWeight: "800", fontSize: 22 }}>
-                      {payload.title}{" "}
+                      {item.title}{" "}
                     </Text>
                     <Text style={{ fontWeight: "800", fontSize: 16 }}>
-                      {payload.brand}{" "}
+                      {item?.condition}
                     </Text>
                   </View>
                   <Text style={{ fontWeight: "800", fontSize: 16 }}>
-                  {payload.currency}  {formatter.number(payload.price)}{" "}
+                    {item.currency}  {formatter.number(item.price)}{" "}
                   </Text>
                   <Text
                     style={{ color: "grey", fontSize: 15, fontWeight: "600" }}
@@ -430,7 +596,7 @@ export default function Item(props: any) {
                     fontWeight: "500",
                   }}
                 >
-                  {payload.desc}{" "}
+                  {item.description}{" "}
                 </Text>
               </View>
 
@@ -498,7 +664,7 @@ export default function Item(props: any) {
                 </View>
 
                 <View style={{ paddingTop: 20 }}>
-                  <ItemsComponent category={payload} />
+                {!loading && !error &&  <ItemsComponent category={{id:item?.category?.id}} />}
                 </View>
               </View>
             </View>

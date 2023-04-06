@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,12 +8,69 @@ import {
   Dimensions,
   Image,
 } from "react-native";
-import category from "../../data/category";
 import { FontAwesome, EvilIcons } from "@expo/vector-icons";
-import { color} from "../../utils";
+import { color, constants, jwt } from "../../utils";
+import gql from "graphql-tag";
+import { useQuery } from "@apollo/client";
 const { width } = Dimensions.get("window");
 
+const CATEGORY_QUERY=gql`
+  query getCategories{
+  categories{
+    data{
+      id
+      attributes{
+        name
+        picture{
+          data{
+            id
+            attributes{
+              url
+            }
+          }
+        }
+      }
+    }
+  }
+}
+`
+
+interface CATEGORY {
+  id: string
+  name: string
+}
+
+
 export default function Category(props: any) {
+
+  const { data, loading, error } = useQuery<any>(
+    CATEGORY_QUERY,
+    { variables: { }, }
+  );
+
+  const rawData=data?.categories?.data
+
+  const [items, setItems] = useState([])
+  useEffect(() => {
+    organizeData(rawData)
+  }, [loading])
+
+
+  const organizeData = (arg) => {
+    if (!loading && !error) {
+      const itemsData: CATEGORY[] = arg.map(x => {
+        return {
+          id:x.id,
+          title:x.attributes.name,
+          url:`${constants.API_ROOT}${x.attributes?.picture?.data?.attributes.url}`
+        }
+      })
+      setItems(itemsData)
+    }
+  }
+
+
+
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
       <View>
@@ -63,7 +120,7 @@ export default function Category(props: any) {
                 justifyContent: "space-between",
               }}
             >
-              {category.map((x, i) => (
+              {items.map((x, i) => (
                 <TouchableOpacity
                   key={i}
                   style={{
@@ -73,10 +130,15 @@ export default function Category(props: any) {
                     width: width / 2.2,
                     borderRadius: 5,
                   }}
+                  onPress={() =>
+                    props.navigation.navigate("Item", {
+                      payload: { ...x, category: x.title },
+                    })
+                  }
                 >
                   <View>
                     <Image
-                      source={{ uri: x.img }}
+                      source={{ uri: x.url }}
                       style={{
                         height: width / 2.7,
                         width: "100%",
@@ -87,7 +149,7 @@ export default function Category(props: any) {
                     />
                   </View>
                   <View style={{ padding: 10 }}>
-                    <Text>{x.title} </Text>
+                    <Text>{x.title}</Text>
                   </View>
                 </TouchableOpacity>
               ))}

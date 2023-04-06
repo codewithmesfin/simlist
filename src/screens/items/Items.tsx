@@ -6,7 +6,7 @@ import { color} from "../../utils";
 import ItemsComponent from "./components/items.component";
 
 export default function Items(props: any) {
-    const { payload } = props.route.params
+    const { id,title } = props.route.params
     return <View style={{ flex: 1, backgroundColor: "white" }}>
         <View>
             <Toolbar
@@ -31,7 +31,7 @@ export default function Items(props: any) {
                         padding: 15, paddingTop: 5, flexDirection: "row",
                         justifyContent: "space-between", alignItems: "center"
                     }}>
-                        <Text style={{ fontSize: 20, fontWeight: "700" }}>{payload.title} </Text>
+                        <Text style={{ fontSize: 20, fontWeight: "700" }}>{title} </Text>
                         <TouchableOpacity style={{ flexDirection: "row", alignItems: "center" }}>
                             <Text style={{
                                 fontSize: 16, fontWeight: "600", color: color.primary,
@@ -42,7 +42,7 @@ export default function Items(props: any) {
                     </View>
 
                     <View>
-                        <ItemsComponent category={payload.title} />
+                    {id &&  <ItemsComponent category={{id:id}} />}
                     </View>
                 </View>
             </ScrollView>
