@@ -122,7 +122,7 @@ export default function ItemsComponent(props: any) {
 
   const organizeData = (arg) => {
     if (!loading && !error) {
-      
+
       const itemsData: CATEGORY = {
         id: arg.id,
         title: arg.attributes.name,
@@ -173,7 +173,7 @@ export default function ItemsComponent(props: any) {
           }}
           onPress={() => {
             navigation.pop()
-            navigation.push("Item", { payload: { ...x, category: props.category } })
+            navigation.push("Item", { id: x.id })
           }}
         >
           <View style={{ borderWidth: 1, borderColor: "#edf2f7", }}>
