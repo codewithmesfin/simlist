@@ -187,7 +187,7 @@ export default function ItemsComponent(props: any) {
             <Text numberOfLines={1} ellipsizeMode='tail'
               style={{ fontSize: 13, fontWeight: "700" }}
             >{x.title} </Text>
-            <Text>{x.price} </Text>
+            <Text>{x.price}</Text>
           </View>
         </TouchableOpacity>)
       }

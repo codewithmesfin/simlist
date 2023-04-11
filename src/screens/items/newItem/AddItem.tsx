@@ -102,7 +102,7 @@ interface CATEGORY_PROPS {
 
 
 export default function AddItem(props: any) {
-  const storeLocation = props.route.params?.location ? props.route.params?.location : "Addis Ababa, Ethiopia"
+  const storeLocation = props.route.params?.location ? props.route.params?.location : locations[0]
   const [uploading, setUploading] = useState(false)
   const { token } = useAuth();
 

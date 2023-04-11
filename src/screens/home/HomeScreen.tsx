@@ -147,42 +147,42 @@ export default function HomeScreen(props: any) {
 
   const organizeData = (arg) => {
     if (!loading && !error) {
-      const itemsData:CATEGORY[]=arg.filter(f=>f.attributes.items?.data.length>0).map((cat:any)=>{
+      const itemsData: CATEGORY[] = arg.filter(f => f.attributes.items?.data.length > 0).map((cat: any) => {
         return {
-          id:cat.id,
-          title:cat.attributes.name,
-          items:cat.attributes.items?.data.map((x: any) => {
-              return {
-                id: x.id,
-                title: x?.attributes.title,
-                currency: x.attributes.currency,
-                price: x.attributes.price,
-                condition: x.attributes.condition,
-                category: {
-                  id: x.attributes.category?.data?.id,
-                  name: x.attributes.category?.data?.attributes?.name
-                },
-                subcategory: {
-                  id: x.attributes.subcategory?.data?.id,
-                  name: x.attributes.subcategory?.data?.attributes?.name
-                },
-                marketplace: {
-                  id: x.attributes.marketplace?.data?.id,
-                  name: x.attributes.marketplace?.data?.attributes?.name
-                },
-                pictures: x.attributes.pictures?.data.map(p => {
-                  return {
-                    id: p.id, url: p.attributes.url
-                  }
-                }),
-                owner: {
-                  id: x.attributes.owner.data.id,
-                  email: x.attributes.owner.data?.attributes.email,
-                  firstName: x.attributes.owner.data?.attributes.firstName,
-                  lastName: x.attributes.owner.data?.attributes.lastName
+          id: cat.id,
+          title: cat.attributes.name,
+          items: cat.attributes.items?.data.map((x: any) => {
+            return {
+              id: x.id,
+              title: x?.attributes.title,
+              currency: x.attributes.currency,
+              price: x.attributes.price,
+              condition: x.attributes.condition,
+              category: {
+                id: x.attributes.category?.data?.id,
+                name: x.attributes.category?.data?.attributes?.name
+              },
+              subcategory: {
+                id: x.attributes.subcategory?.data?.id,
+                name: x.attributes.subcategory?.data?.attributes?.name
+              },
+              marketplace: {
+                id: x.attributes.marketplace?.data?.id,
+                name: x.attributes.marketplace?.data?.attributes?.name
+              },
+              pictures: x.attributes.pictures?.data.map(p => {
+                return {
+                  id: p.id, url: p.attributes.url
                 }
+              }),
+              owner: {
+                id: x.attributes.owner.data.id,
+                email: x.attributes.owner.data?.attributes.email,
+                firstName: x.attributes.owner.data?.attributes.firstName,
+                lastName: x.attributes.owner.data?.attributes.lastName
               }
-            })
+            }
+          })
         }
       })
       setItems(itemsData)
@@ -343,13 +343,13 @@ export default function HomeScreen(props: any) {
                       }}
                       onPress={() =>
                         props.navigation.navigate("Item", {
-                          id:x.id,
+                          id: x.id,
                         })
                       }
                     >
                       <View style={{ borderWidth: 1, borderColor: "#edf2f7" }}>
                         <Image
-                          source={{ uri: `${constants.API_ROOT}${x.pictures[x.pictures.length-1].url}` }}
+                          source={{ uri: `${constants.API_ROOT}${x.pictures[x.pictures.length - 1].url}` }}
                           style={{
                             height: width / 2.2,
                             width: "100%",
@@ -365,7 +365,7 @@ export default function HomeScreen(props: any) {
                         }}
                       >
                         <Text style={{ fontWeight: "800", fontSize: 18 }}>
-                         {x.currency} {x.price}{" "}
+                          {x.currency} {x.price}{" "}
                         </Text>
                         <Text
                           numberOfLines={1}
@@ -402,7 +402,7 @@ export default function HomeScreen(props: any) {
                     marginTop: 5,
                   }}
                   onPress={() =>
-                    props.navigation.navigate("Items", { id: y.id,title:y.title })
+                    props.navigation.navigate("Items", { id: y.id, title: y.title })
                   }
                 >
                   <Text
