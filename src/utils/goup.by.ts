@@ -19,9 +19,8 @@ const groupData = {
     let items = [];
     for (const key in result) {
       let item = {
-          id: key,
-          title: result[key][0].category.name,
-        
+        id: key,
+        title: result[key][0].category.name,
         items: result[key].sort(
           (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)
         ),

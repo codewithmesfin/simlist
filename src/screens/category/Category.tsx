@@ -14,7 +14,7 @@ import gql from "graphql-tag";
 import { useQuery } from "@apollo/client";
 const { width } = Dimensions.get("window");
 
-const CATEGORY_QUERY=gql`
+const CATEGORY_QUERY = gql`
   query getCategories{
   categories{
     data{
@@ -45,10 +45,10 @@ export default function Category(props: any) {
 
   const { data, loading, error } = useQuery<any>(
     CATEGORY_QUERY,
-    { variables: { }, }
+    { variables: {}, }
   );
 
-  const rawData=data?.categories?.data
+  const rawData = data?.categories?.data
 
   const [items, setItems] = useState([])
   useEffect(() => {
@@ -60,9 +60,9 @@ export default function Category(props: any) {
     if (!loading && !error) {
       const itemsData: CATEGORY[] = arg.map(x => {
         return {
-          id:x.id,
-          title:x.attributes.name,
-          url:`${constants.API_ROOT}${x.attributes?.picture?.data?.attributes.url}`
+          id: x.id,
+          title: x.attributes.name,
+          url: `${constants.API_ROOT}${x.attributes?.picture?.data?.attributes.url}`
         }
       })
       setItems(itemsData)
@@ -131,9 +131,7 @@ export default function Category(props: any) {
                     borderRadius: 5,
                   }}
                   onPress={() =>
-                    props.navigation.navigate("Item", {
-                      payload: { ...x, category: x.title },
-                    })
+                     props.navigation.navigate("Items", { id: x.id, title: x.title })
                   }
                 >
                   <View>

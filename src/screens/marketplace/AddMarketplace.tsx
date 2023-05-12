@@ -1,55 +1,23 @@
-import React, { useEffect, useState } from "react";
-import {
-  Dimensions,
-  ImageBackground,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-  Alert,
-} from "react-native";
-import { color, constants, jwt } from "../../utils";
+import React, { useRef, useState } from "react";
+import { Dimensions, ImageBackground, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { color, constants, jwt, validator } from "../../utils";
 import { MaterialIcons, AntDesign, Ionicons } from "@expo/vector-icons";
 import { Card, ImagePicker, Input, Loading, MiniNavbar, Modal } from "../../components";
 import SelectDialog from "../../components/select.dialog";
-
 import Tips from "../items/newItem/Tips";
-import stocks from "../../data/stocks";
 import { useSnackbar } from "../../context/snackbar.context";
 import gql from "graphql-tag";
 import { useMutation, useQuery } from "@apollo/client";
-
 import { ReactNativeFile } from 'apollo-upload-client';
 import * as mime from 'react-native-mime-types';
 import { usePopup } from "../../context/popup.context";
-import Link from "../../components/link";
 import { useAuth } from "../../context/auth.context";
 import locations from "../../data/locations";
-
+import PhoneInput from "react-native-phone-number-input";
 
 const width = Dimensions.get("window").width;
 
 
-const CATEGORY_QUERY = gql`
-     query GetAllCategories {
-      categories {
-        data{
-          id
-        attributes{
-          name
-          subcategories{
-            data{
-              id
-              attributes{
-                name
-              }
-            }
-          }
-        }
-        }
-     } 
-  }
-`
 
 const PICTURE_QUERY = gql`
    mutation($file: Upload!) {
@@ -64,13 +32,13 @@ const PICTURE_QUERY = gql`
   }
 `
 
-const ITEM_QUERY = gql`
-  mutation CreateItem($input:ItemInput!) {
-      createItem(data: $input) {
+const MARKETPLACE_MUTATION = gql`
+  mutation CreateMarketplace($input:MarketplaceInput!) {
+      createMarketplace(data: $input) {
        data{
         id
         attributes{
-          title
+          name
         }
       }
       }
@@ -84,14 +52,11 @@ interface CATEGORY_PROPS {
   subcategories: CATEGORY_PROPS[]
 }
 
-
-
 export default function AddMarketplace(props: any) {
+  const phoneInput = useRef(null);
 
   const { token } = useAuth();
   const decodedAccessToken: any = jwt.decode(token)
-
-
 
   const [uploading, setUploading] = useState(false)
 
@@ -113,12 +78,12 @@ export default function AddMarketplace(props: any) {
   });
 
   const [saving, setSaving] = useState(false)
-  const [CreateItem] = useMutation(ITEM_QUERY, {
+  const [CreateMarketplace] = useMutation(MARKETPLACE_MUTATION, {
     onCompleted: (data) => {
       setSaving(false)
       showPopup(
         "Success",
-        `Your item has been posted on Simlist. Your post will be visible public in short time after Simlist team reviews it and fits our terms, policies and conditions.`,
+        `Your Marketplace has been submitted to Simlist. Your Marketplace will be visible public in short time after Simlist team reviews it and fits our terms, policies and conditions.`,
         "success"
       )
     },
@@ -127,29 +92,11 @@ export default function AddMarketplace(props: any) {
       // console.log("Errow: ", err)
       showSnackbar(
         "System Problem",
-        'Dear customer, we are unable to submit your item information right now. Try again later. thank you for using Simlist.',
+        'Dear customer, we are unable to submit your marketplace information right now. Try again later. thank you for using Simlist.',
         "error"
       )
     }
   });
-
-
-  const { data, loading, error } = useQuery<any>(CATEGORY_QUERY);
-
-  // console.log("data:",data,error)
-
-  const rawData = data?.categories?.data ? data?.categories?.data : []
-  const categories: CATEGORY_PROPS[] = rawData.map(x => {
-    return {
-      id: x.id,
-      name: x.attributes.name,
-      subcategories: x.attributes.subcategories.data.map(y => {
-        return {
-          id: y.id, name: y.attributes.name
-        }
-      })
-    }
-  })
 
 
 
@@ -166,6 +113,8 @@ export default function AddMarketplace(props: any) {
     pictures: true,
     name: true,
     type: true,
+    phone: true,
+    email: true,
     description: true,
     address: true,
     location: true,
@@ -175,6 +124,8 @@ export default function AddMarketplace(props: any) {
     name: "",
     description: "",
     type: "",
+    phone: "",
+    email: "",
     address: "",
     location: locations[0],
     pictures: pictures,
@@ -185,11 +136,12 @@ export default function AddMarketplace(props: any) {
     const validFields = {
       name: item.name !== "" && isValid.name,
       type: item.type !== "" && isValid.type,
+      phone: item.phone !== "" && isValid.phone,
+      email: item.email !== "" && isValid.email,
       description: item.description !== "" && isValid.description,
       address: item.address !== "" && isValid.address,
       location: item.location !== "" && isValid.location,
-      pictures: item.pictures.length > 0,
-      website: item.website !== "" && isValid.website,
+      pictures: item.pictures.length > 0
     };
     setIsValid({
       ...isValid,
@@ -198,8 +150,9 @@ export default function AddMarketplace(props: any) {
 
     return (
       validFields.name &&
-      validFields.website &&
       validFields.type &&
+      validFields.phone &&
+      validFields.email &&
       validFields.description &&
       validFields.address &&
       validFields.location &&
@@ -237,23 +190,23 @@ export default function AddMarketplace(props: any) {
 
 
   const submit = async () => {
-    console.log(item)
-    // if (validateAllFields()) {
-    //   setSaving(true)
-    //   await CreateItem({
-    //     variables: {
-    //       "input": item
-    //     },
-    //   });
-    // }
+    // console.log(item)
+    if (validateAllFields()) {
+      setSaving(true)
+      await CreateMarketplace({
+        variables: {
+          "input": { ...item, owner: decodedAccessToken.id }
+        },
+      });
+    }
 
-    // else {
-    //   showSnackbar(
-    //     "Form Validation Error",
-    //     'Dear customer, please all the required fields and try again.',
-    //     "error"
-    //   )
-    // }
+    else {
+      showSnackbar(
+        "Form Validation Error",
+        'Dear customer, please all the required fields and try again.',
+        "error"
+      )
+    }
   };
 
 
@@ -468,7 +421,11 @@ export default function AddMarketplace(props: any) {
                       <Input
                         label="Name"
                         large
-                        onchange={(e: string) => setItem({ ...item, name: e })}
+                        error={!isValid.name}
+                        onchange={(e: string) => {
+                          setIsValid({ ...isValid, name: e.length > 0 })
+                          setItem({ ...item, name: e })
+                        }}
                       />
                     </View>
                     <View style={{ paddingBottom: 30 }}>
@@ -485,9 +442,59 @@ export default function AddMarketplace(props: any) {
                           { title: "Other" },
                         ]}
                         height={360}
-                        onselect={(e: any) => setItem({ ...item, type: e.title })}
+                        borderColor={isValid.type ? "grey" : "red"}
+                        onselect={(e: any) => {
+                          setIsValid({ ...isValid, type: e.title.length > 0 })
+                          setItem({ ...item, type: e.title })
+                        }}
                       />
                     </View>
+
+                    <View style={{ paddingBottom: 30 }}>
+                      <Input
+                        label="Company Email"
+                        large
+                        error={!isValid.email}
+                        onchange={(e: string) => {
+                          setIsValid({ ...isValid, email: validator.validateEmail(e) })
+                          setItem({ ...item, email: e })
+                        }}
+                      />
+                    </View>
+
+                    <View style={{ paddingBottom: 30 }}>
+
+                      <PhoneInput
+                        ref={phoneInput}
+                        defaultValue={item.phone}
+                        defaultCode="ET"
+                        layout="first"
+                        // withShadow
+                        // autoFocus
+                        containerStyle={{
+                          width: "100%",
+                          borderWidth: 1,
+                          borderColor: "grey",
+                          borderRadius: 5,
+                          elevation: 0,
+                          backgroundColor: "white",
+                        }}
+                        textContainerStyle={{
+                          width: "100%",
+                          elevation: 0,
+                          backgroundColor: "white",
+                          borderRadius: 5,
+                          paddingVertical: 17,
+                          paddingBottom: 10,
+                        }}
+                        onChangeFormattedText={(text) => {
+                          setIsValid({ ...isValid, phone: validator.validatePhoneNumber(text) })
+                          setItem({ ...item, phone: text })
+                        }}
+                      />
+                    </View>
+
+
                     <View style={{ paddingBottom: 30 }}>
                       <Input
                         label="Website (optional)"
@@ -496,12 +503,30 @@ export default function AddMarketplace(props: any) {
                       />
                     </View>
 
+
+
                     <View style={{ paddingBottom: 30 }}>
                       <Input
                         label="Address"
                         placeholder="E.g. Merkato, Addis Ababa"
                         large
-                        onchange={(e: string) => setItem({ ...item, address: e })}
+                        error={!isValid.address}
+                        onchange={(e: string) => {
+                          setIsValid({ ...isValid, address: e.length > 0 })
+                          setItem({ ...item, address: e })
+                        }}
+                      />
+                    </View>
+                    <View style={{ paddingBottom: 30 }}>
+                      <Input
+                        label="Description"
+                        multiline
+                        large
+                        error={!isValid.description}
+                        onchange={(e: string) => {
+                          setIsValid({ ...isValid, description: e.length > 20 });
+                          setItem({ ...item, description: e });
+                        }}
                       />
                     </View>
                     <View

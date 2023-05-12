@@ -1,84 +1,35 @@
 import { useMutation } from "@apollo/client";
 import gql from "graphql-tag";
 import React, { useState } from "react";
-import { View, Text, Image, Alert, Linking, Dimensions } from "react-native";
-import { Button, MiniNavbar } from "../../../components";
+import { View, Text, Image, Dimensions } from "react-native";
+import { Button, Loading, MiniNavbar } from "../../../components";
 import { useAuth } from "../../../context/auth.context";
 import { useSnackbar } from "../../../context/snackbar.context";
-import auth from "../../../service/auth.services";
+
 
 
 const { height } = Dimensions.get("window");
 
 
-const REGISTER_MUTATION = gql`
-   mutation Signup($input:UsersPermissionsRegisterInput!) {
-      register(input: $input) {
-      jwt
-        user{
-            id
-            username
-            email
-        }
-      }
-    }
-`
-
-const PROFILE_MUTATION = gql`
-   mutation CreateeNewUser($input:ProfileInput!) {
-       createProfile(data: $input) {
-        data{
-            id
-            attributes{
-                firstName
-                lastName
-            }
-    	}
-      }
-    }
+const COMPLETE_PROFILE_MUTATION = gql`
+   mutation CompleteProfile($id:ID!, $input:UsersPermissionsUserInput!){
+ updateUsersPermissionsUser( id:$id,data:$input){
+   data{
+    id
+  }
+  }
+}
 `
 
 
 export default function FinishSignup(props: any) {
-    const { checkUserAuthentication } = useAuth();
+    const { checkUserAuthentication, } = useAuth();
     const payload = props.route.params.payload ? props.route.params.payload : null
     const [signingup, setSigninup] = useState(false)
-    const [user, setUser] = useState({ id: "", token: "" })
-    const [Register] = useMutation(REGISTER_MUTATION, {
-        onCompleted: (data) => {
-            const response = {
-                id: data.register.user.id,
-                token: data.register.jwt
-            }
-            setUser(response)
 
-            FinishRegistration({
-                variables: {
-                    "input": {
-                        "email": payload.email,
-                        "firstName": payload.firstName,
-                        "lastName": payload.lastName,
-                        "gender": payload.gender,
-                        "user": response.id,
-                        "phone": payload.phone
-                    }
-                }
-            });
-        },
-        onError: (err) => {
-            console.log("Reg error: ", err)
-            showSnackbar(
-                "Registration Error",
-                `Dear ${payload.firstName} we are unable to finish registration. Try again. Make sure your you don't have an account with this email and phone number`, "error",
-                "Try again",
-            )
-            setSigninup(false)
-        }
-    });
 
-    const [FinishRegistration] = useMutation(PROFILE_MUTATION, {
+    const [FinishRegistration] = useMutation(COMPLETE_PROFILE_MUTATION, {
         onCompleted: (data) => {
-            auth.setUser(user)
             checkUserAuthentication()
             setSigninup(false)
         },
@@ -96,9 +47,17 @@ export default function FinishSignup(props: any) {
 
 
     const signup = () => {
-        Register({
+        setSigninup(true)
+    
+        FinishRegistration({
             variables: {
-                "input": { username: payload.email, email: payload.email, password: payload.password }
+                id:payload.id,
+                "input": {
+                    "firstName": payload.firstName,
+                    "lastName": payload.lastName,
+                    "gender": payload.gender,
+                    "phone": payload.phone
+                }
             }
         });
     }
@@ -146,7 +105,9 @@ export default function FinishSignup(props: any) {
                         better service.
                     </Text>
                     <View style={{ paddingTop: 30 }}>
-                        <Button title="Sign up" onclick={signup} />
+                     {signingup?
+                     <Loading/>
+                     :<Button title="Sign up" onclick={signup} />}
                     </View>
                 </View>
             </View>

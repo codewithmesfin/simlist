@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import {
   View,
@@ -10,37 +10,92 @@ import {
   ImageBackground,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Linking,
 } from "react-native";
 import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
-import { color as constants, formatter } from "../../utils";
+import { color, constants, } from "../../utils";
 import { Toolbar } from "../../components";
 import { Avatar } from "react-native-paper";
+import gql from "graphql-tag";
+import { useQuery } from "@apollo/client";
 const { width } = Dimensions.get("window");
 
-export default function Marketplace(props: any) {
-  const { payload } = props.route.params;
 
-  const images = [
-    {
-      id: 0,
-      img: payload.img,
-      title: "JOIN AND CONNECT!",
-      subtitle:
-        "Here, nothing is impossible. Get your dream job, buy what you want, and sell what ever you want!",
-    },
-    {
-      id: 1,
-      img: "https://m.media-amazon.com/images/I/61KE5C1MQrL._AC_SY355_.jpg",
-      title: "Shopping Made Easy!",
-      subtitle: "A great place to buy and sell things you love !",
-    },
-    {
-      id: 2,
-      img: "https://ssl-product-images.www8-hp.com/digmedialib/prodimg/lowres/c06565881.png",
-      title: "Join Now",
-      subtitle: "Join Etyop for a better experience !",
-    },
-  ];
+interface PICTURE {
+  id: string
+  url?: string
+}
+
+interface OWNER {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  avatar: PICTURE
+}
+
+interface MARKETPLACE {
+  id: string
+  name: string
+  description?: string
+  location?: string
+  address?: string
+  email: string
+  phone: string
+  pictures: PICTURE[]
+  owner: OWNER
+}
+
+
+const MARKETPLACE_QUERY = gql`
+  query getMarketplace($id:ID!){
+   marketplace(id:$id){
+    data{
+      id
+       attributes{
+              name
+              location
+              address
+              description
+              email
+              phone
+              pictures{
+                data{
+                  id
+                  attributes{
+                    url
+                  }
+                }
+              }
+        owner{
+          data{
+            id
+            attributes{
+              firstName
+              lastName
+              email
+              phone
+              avatar{
+                data{
+                  id
+                  attributes{url}
+                }
+              }
+            }
+          }
+        }
+            }
+
+    }
+  }
+}
+`
+
+
+export default function Marketplace(props: any) {
+
+
 
   const [sliderState, setSliderState] = useState({ currentPage: 0 });
 
@@ -56,6 +111,62 @@ export default function Marketplace(props: any) {
     }
   };
   const { currentPage: pageIndex } = sliderState;
+
+
+  const { id } = props.route.params
+
+  const [item, setItem] = useState<any>({ pictures: [] })
+  const { data, loading, error } = useQuery<any>(
+    MARKETPLACE_QUERY,
+    {
+      variables: {
+        id: id
+      },
+    }
+  );
+
+
+  const rawData = data?.marketplace?.data
+
+
+
+  useEffect(() => {
+    organizeData(rawData)
+  }, [loading])
+
+
+  const organizeData = (arg) => {
+    if (!loading && !error) {
+      const itemData: MARKETPLACE = {
+        id: arg.id,
+        name: arg.attributes.name,
+        description: arg.attributes.description,
+        location: arg.attributes.location,
+        address: arg.attributes.address,
+        email: arg.attributes.email,
+        phone: arg.attributes.phone,
+        pictures: arg.attributes.pictures.data.map((p: any) => {
+          return {
+            id: p.id, url: `${constants.API_ROOT}${p.attributes.url}`
+          }
+        }),
+        owner: {
+          id: arg.attributes.owner.data.id,
+          firstName: arg.attributes.owner.data.attributes.firstName,
+          lastName: arg.attributes.owner.data.attributes.lastName,
+          email: arg.attributes.owner.data.attributes.email,
+          phone: arg.attributes.owner.data.attributes.phone,
+          avatar: arg.attributes.owner.data.attributes.avatar.data.map(a => {
+            return {
+              id: a.id, url: `${constants.API_ROOT}${a.attributes.url}`
+            }
+          }),
+        }
+      }
+
+      setItem(itemData)
+    }
+  }
 
   return (
     <View
@@ -96,10 +207,10 @@ export default function Marketplace(props: any) {
                     setSliderPage(event);
                   }}
                 >
-                  {images.map((x: any, i: number) => (
+                  {item.pictures.map((x: any, i: number) => (
                     <ImageBackground
                       key={i}
-                      source={{ uri: x.img }}
+                      source={{ uri: x.url }}
                       resizeMode="cover"
                       style={{
                         height: width,
@@ -127,7 +238,7 @@ export default function Marketplace(props: any) {
                           }}
                         >
                           <View style={styles.paginationWrapper}>
-                            {Array.from(Array(images.length).keys()).map(
+                            {Array.from(Array(item.pictures.length).keys()).map(
                               (_key, index) => (
                                 <View
                                   style={[
@@ -148,11 +259,7 @@ export default function Marketplace(props: any) {
                 </ScrollView>
               </View>
               <View style={{ paddingTop: 10 }}>
-                {/* <View style={styles.paginationWrapper}>
-                                {Array.from(Array(images.length).keys()).map((_key, index) => (
-                                    <View style={[styles.paginationDots, { opacity: pageIndex === index ? 1 : 0.2 }]} key={index} />
-                                ))}
-                            </View> */}
+
                 <View style={{ padding: 15 }}>
                   <View
                     style={{
@@ -162,14 +269,21 @@ export default function Marketplace(props: any) {
                     }}
                   >
                     <Text style={{ fontWeight: "800", fontSize: 22 }}>
-                      {payload.title}{" "}
+                      {item.name}{" "}
                     </Text>
-                    <Text style={{ fontWeight: "800", fontSize: 16 }}>
-                      {payload.brand}{" "}
-                    </Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", }}>
+                      <TouchableOpacity style={{ marginRight: 10 }} onPress={() =>
+                        Linking.openURL(`tel:${item.phone}`)
+                      }>
+                        <Ionicons name="ios-call" size={24} color={color.primary} />
+                      </TouchableOpacity>
+                      <TouchableOpacity style={{ marginLeft: 10 }} onPress={() => Linking.openURL(`sms:${item.phone}`)}>
+                        <MaterialIcons name="message" size={28} color={color.primary} />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                   <Text style={{ fontWeight: "800", fontSize: 16 }}>
-                    {formatter.number(payload.price)}{" "}
+                    {item.location}
                   </Text>
                   <Text
                     style={{ color: "grey", fontSize: 15, fontWeight: "600" }}
@@ -193,7 +307,7 @@ export default function Marketplace(props: any) {
                     >
                       <View
                         style={{
-                          backgroundColor: constants.light,
+                          backgroundColor: color.light,
                           justifyContent: "center",
                           height: 50,
                           width: 50,
@@ -220,7 +334,7 @@ export default function Marketplace(props: any) {
                     >
                       <View
                         style={{
-                          backgroundColor: constants.light,
+                          backgroundColor: color.light,
                           justifyContent: "center",
                           height: 50,
                           width: 50,
@@ -243,7 +357,7 @@ export default function Marketplace(props: any) {
                     >
                       <View
                         style={{
-                          backgroundColor: constants.primary,
+                          backgroundColor: color.primary,
                           justifyContent: "center",
                           height: 50,
                           width: 50,
@@ -262,7 +376,7 @@ export default function Marketplace(props: any) {
                           fontSize: 18,
                           fontWeight: "800",
                           padding: 10,
-                          color: constants.primary,
+                          color: color.primary,
                         }}
                       >
                         Menu
@@ -275,7 +389,7 @@ export default function Marketplace(props: any) {
                     >
                       <View
                         style={{
-                          backgroundColor: constants.light,
+                          backgroundColor: color.light,
                           justifyContent: "center",
                           height: 50,
                           width: 50,
@@ -312,13 +426,16 @@ export default function Marketplace(props: any) {
                       <Avatar.Image
                         size={50}
                         source={{
-                          uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ_cSRnL4eLGTwEt0rBym1y_PTjpeSTwtOH0HFR4FXaBS_dAH58X2UupBiHYesQHe5Qd88&usqp=CAU",
+                          uri:
+                            item?.owner?.avatar.length > 0 ?
+                              item?.owner?.avatar[item?.owner?.avatar.length - 1].url
+                              : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ_cSRnL4eLGTwEt0rBym1y_PTjpeSTwtOH0HFR4FXaBS_dAH58X2UupBiHYesQHe5Qd88&usqp=CAU",
                         }}
                       />
                     </View>
                     <View>
-                      <Text style={{ fontSize: 22, fontWeight: "800" }}>
-                        John Doe
+                      <Text style={{ fontSize: 18, fontWeight: "800" }}>
+                        {item?.owner?.firstName}   {item?.owner?.lastName}
                       </Text>
                       <View
                         style={{ flexDirection: "row", alignItems: "center" }}
@@ -326,16 +443,16 @@ export default function Marketplace(props: any) {
                         <MaterialIcons
                           name="verified"
                           size={18}
-                          color={constants.primary}
+                          color={color.primary}
                         />
                         <Text style={{ paddingLeft: 5 }}>Verified user</Text>
                       </View>
                     </View>
                   </View>
-                  <TouchableOpacity>
+                  <TouchableOpacity onPress={() => Linking.openURL(`tel:${item.owner.phone}`)}>
                     <Ionicons name="ios-call" size={24} color="black" />
                   </TouchableOpacity>
-                  <TouchableOpacity>
+                  <TouchableOpacity onPress={() => Linking.openURL(`sms:${item.owner.phone}`)}>
                     <MaterialIcons name="message" size={28} color="black" />
                   </TouchableOpacity>
                   <TouchableOpacity>
@@ -360,12 +477,7 @@ export default function Marketplace(props: any) {
                     fontWeight: "500",
                   }}
                 >
-                  {/* {payload.desc} */}
-                  Lorem Ipsum is simply dummy text of the printing and
-                  typesetting industry. Lorem Ipsum has been the industry's
-                  standard dummy text ever since the 1500s, when an unknown
-                  printer took a galley of type and scrambled it to make a type
-                  specimen book.
+                  {item.description}
                 </Text>
               </View>
             </View>

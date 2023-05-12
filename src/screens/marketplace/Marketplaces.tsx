@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -13,10 +13,107 @@ import {
   MaterialIcons,
   Foundation,
 } from "@expo/vector-icons";
-import { color } from "../../utils";
-import marketplaces from "../../data/marketplaces";
+import { color, constants, jwt } from "../../utils";
+import gql from "graphql-tag";
+import { useQuery } from "@apollo/client";
+import { useAuth } from "../../context/auth.context";
+
+
+interface PICTURE {
+  id: string
+  url?: string
+}
+
+interface MARKETPLACE {
+  id: string
+  name: string
+  description?: string
+  location?: string
+  address?: string
+  email: string
+  phone: string
+  pictures: PICTURE[]
+}
+
+
+const MARKETPLACES_QUERY = gql`
+ query MyMarketplace($id:ID!) {
+      usersPermissionsUser(id: $id) {
+      data{
+        id
+        attributes{
+        marketplaces{
+          data{
+            id
+            attributes{
+              name
+              location
+              address
+              description
+              email
+              phone
+              pictures{
+                data{
+                  id
+                  attributes{
+                    url
+                  }
+                }
+              }
+            }
+          }
+        }
+        }
+      }
+      }
+    }
+`
 
 export default function Marketplaces(props: any) {
+  const { token } = useAuth();
+  const decodedAccessToken: any = jwt.decode(token)
+
+  const [items, setItems] = useState([])
+  const { data, loading, error } = useQuery<any>(
+    MARKETPLACES_QUERY,
+    {
+      variables: {
+        id: decodedAccessToken.id
+      },
+    }
+  );
+
+
+  const rawData = data?.usersPermissionsUser?.data?.attributes?.marketplaces?.data
+  // console.log(rawData)
+  useEffect(() => {
+    organizeData(rawData)
+  }, [loading])
+
+
+  const organizeData = (arg) => {
+    if (!loading && !error) {
+      const itemsData: MARKETPLACE[] = arg.map((x: any) => {
+        return {
+          id: x.id,
+          address: x.attributes.address,
+          description: x.attributes.description,
+          email: x.attributes.email,
+          location: x.attributes.location,
+          name: x.attributes.name,
+          phone: x.attributes.phone,
+          pictures: x.attributes.pictures.data.map((p: any) => {
+            return {
+              id: p.id, url: `${constants.API_ROOT}${p.attributes.url}`
+            }
+          })
+        }
+      })
+
+      setItems(itemsData)
+    }
+  }
+
 
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
@@ -25,7 +122,7 @@ export default function Marketplaces(props: any) {
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
         >
-          <View style={{paddingBottom:100}}>
+          <View style={{ paddingBottom: 100 }}>
             <View
               style={{
                 padding: 15,
@@ -67,7 +164,7 @@ export default function Marketplaces(props: any) {
                 paddingBottom: 0,
               }}
             >
-              {marketplaces.map((x: any, i: number) => (
+              {items.map((x: any, i: number) => (
                 <TouchableOpacity
                   key={i}
                   style={{
@@ -75,23 +172,23 @@ export default function Marketplaces(props: any) {
                     flexDirection: "row",
                     alignItems: "center",
                   }}
-                  onPress={() => props.navigation.navigate("Marketplace", { payload:x })}
+                  onPress={() => props.navigation.navigate("Marketplace", { id: x.id })}
                 >
                   <View>
-                    <Image source={{uri:x.img}} style={{
+                    <Image source={{ uri: x.pictures[x.pictures.length - 1].url }} style={{
                       height: 100,
                       width: 100,
                       resizeMode: "cover",
                       borderRadius: 5,
                     }} />
-                    </View>
+                  </View>
                   <View
                     style={{
                       flex: 1,
-                      borderBottomWidth: marketplaces.length - 1 > i ? 1 : 0,
+                      borderBottomWidth: items.length - 1 > i ? 1 : 0,
                       borderBottomColor: "#edf2f7",
                       paddingBottom: 15,
-                      paddingTop:15,
+                      paddingTop: 15,
                       marginLeft: 15,
                     }}
                   >
@@ -101,7 +198,7 @@ export default function Marketplaces(props: any) {
                         fontWeight: "700",
                       }}
                     >
-                      {x.title}
+                      {x.name}
                     </Text>
 
                     <View
@@ -156,7 +253,7 @@ export default function Marketplaces(props: any) {
                         style={{
                           paddingLeft: 10,
                           color: "black",
-                          fontWeight: "700",fontSize:12
+                          fontWeight: "700", fontSize: 12
                         }}
                       >
                         {x.location}{" "}
@@ -196,7 +293,7 @@ export default function Marketplaces(props: any) {
         >
           <Foundation name="page-edit" size={24} color="white" />
           <Text style={{ color: "white", paddingLeft: 10 }}>
-         Add your Marketplace
+            Add your Marketplace
           </Text>
         </TouchableOpacity>
       </View>

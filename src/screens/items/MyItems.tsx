@@ -15,7 +15,7 @@ import {
   FontAwesome,
   EvilIcons,
 } from "@expo/vector-icons";
-import items from "../../data/items";
+
 import { Bottomsheet } from "../../components";
 import { color, constants, groupData, jwt } from "../../utils";
 import { useAuth } from "../../context/auth.context";
@@ -351,7 +351,7 @@ export default function MyItems(props: any) {
                     marginTop: 5,
                   }}
                   onPress={() =>
-                    props.navigation.navigate("Items", { payload: y })
+                    props.navigation.navigate("Items", { id: y.id })
                   }
                 >
                   <Text

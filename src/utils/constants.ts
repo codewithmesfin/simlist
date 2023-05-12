@@ -9,7 +9,7 @@ const color = {
 };
 
 const constants = {
-  API_ROOT: "http://192.168.1.4:1337",
+  API_ROOT: "http://192.168.1.11:1337",
 };
 
 export { color, constants };

@@ -33,7 +33,7 @@ export default function BottomSnackbar({
   }, [])
 
 
-  return  open && (
+  return open && (
     <View style={{
       position: "absolute",
       bottom: 0,
@@ -56,27 +56,30 @@ export default function BottomSnackbar({
 
     }}>
       <View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        <View >
           <View>
-            {title && (
-              <Text style={{
-                fontSize: 20, color:
-                  type && type !== "" ? 'white' : "#666666", fontWeight: "700"
-              }}>
-                {title}
-              </Text>
-            )}
+            <View style={{ flexDirection: "row", justifyContent: "space-between",paddingBottom:15 }}>
+              {title && (
+                <Text style={{
+                  fontSize: 20, color:
+                    type && type !== "" ? 'white' : "#666666", fontWeight: "700"
+                }}>
+                  {title}
+                </Text>
+              )}
+              <TouchableOpacity onPress={() =>
+                onBtnClick()
+              }>
+                <Icon name="close" size={25} color={type && type !== "" ? 'white' : color.primary} />
+              </TouchableOpacity>
+            </View>
             {subtitle && (
               <Text style={{ fontSize: 16, color: type && type !== "" ? 'white' : "#666666", paddingTop: 7 }}>
                 {subtitle}
               </Text>
             )}
           </View>
-          <TouchableOpacity onPress={() => 
-            onBtnClick()
-          }>
-            <Icon name="close" size={25} color={type && type !== "" ? 'white' : color.primary} />
-          </TouchableOpacity>
+
         </View>
       </View>
     </View>

@@ -85,7 +85,7 @@ export default function SimpleModal({
           <View style={{ padding: 30 }}>
             <Button title={btnText ? btnText : "Continue"} onclick={() => {
               onBtnClick()
-              navigation.navigate(navigate)
+              if (navigate) navigation.navigate(navigate)
             }}
               borderRadius={30}
               bgColor={type === "error" ? 'red'

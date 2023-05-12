@@ -10,42 +10,174 @@ import {
 } from "react-native";
 import { Loading, Toolbar } from "../../components";
 import { EvilIcons } from "@expo/vector-icons";
-import {color as  constants } from "../../utils";
+import { color, constants } from "../../utils";
 import items from "../../data/items";
+import gql from "graphql-tag";
+import { useQuery } from "@apollo/client";
 const { width, height } = Dimensions.get("window");
 
-export default function Search(props: any) {
-  const [item, setItem] = useState({
-    loading: true,
-    data: [],
-    error: "",
-  });
 
-  const flatenItems: any = items.map((y: any) =>
-  y.children.map((x: any) => {
-    return {
-      category: y.title,
-      ...x,
-    };
-  })
-).flat();
+interface PICTURE {
+  id: string
+  url?: string
+}
+
+interface ITEM {
+  id: string
+  title?: string
+  currency?: string
+  price?: number
+  description?: string
+  condition?: string
+  category?: {
+    id: string
+    name?: string
+  },
+  subcategory?: {
+    id: string
+    name?: string
+  }
+  marketplace?: {
+    id: string
+    name?: string
+  }
+  picture: PICTURE[]
+  owner: {
+    id: string
+    email?: string
+    firstName?: string
+    lastName?: string
+  }
+}
+
+const ITEM_QUERY = gql`
+ query GetAllItems {
+      items {
+        data{
+          id
+        attributes{
+          title
+          currency
+          price
+          description
+          condition
+          category{
+            data{
+              id
+              attributes{
+                name
+              }
+            }
+          }
+          subcategory{
+            data{
+              id 
+              attributes{
+                name
+              }
+            }
+          }
+          marketplace{
+            data{
+              id
+              attributes{
+                name
+              }
+            }
+          }
+          pictures{
+            data{id
+            attributes{
+              url
+            }
+            }
+          }
+          owner{
+            data{
+              id
+              attributes{
+               email
+                firstName
+                lastName
+              }
+            }
+          }
+        }
+        }
+     } 
+  }
+`
+
+export default function Search(props: any) {
+  const [cachedData, setCacheData] = useState([])
+
+  const [items, setItems] = useState([])
+
+  const { data, loading, error } = useQuery<any>(
+    ITEM_QUERY,
+    { variables: { id: props?.category?.id }, }
+  );
+
+  const rawData = data?.items?.data
+
   useEffect(() => {
-   
-    //   console.log(flatenItems.map(x=>x.title))
-    setItem({ ...item, loading: false, data: flatenItems });
-  }, []);
+    organizeData(rawData)
+  }, [loading])
+
+
+  const organizeData = (arg) => {
+    if (!loading && !error) {
+
+      const itemsData: ITEM[] = arg.map((x, i) => {
+        return {
+          id: x.id,
+          title: x?.attributes.title,
+          currency: x.attributes.currency,
+          price: x.attributes.price,
+          condition: x.attributes.condition,
+          category: {
+            id: x.attributes.category?.data?.id,
+            name: x.attributes.category?.data?.attributes?.name
+          },
+          subcategory: {
+            id: x.attributes.subcategory?.data?.id,
+            name: x.attributes.subcategory?.data?.attributes?.name
+          },
+          marketplace: {
+            id: x.attributes.marketplace?.data?.id,
+            name: x.attributes.marketplace?.data?.attributes?.name
+          },
+          pictures: x.attributes.pictures?.data.map(p => {
+            return {
+              id: p.id, url: p.attributes.url
+            }
+          }),
+          owner: {
+            id: x.attributes.owner.data.id,
+            email: x.attributes.owner.data?.attributes.email,
+            firstName: x.attributes.owner.data?.attributes.firstName,
+            lastName: x.attributes.owner.data?.attributes.lastName
+          }
+        }
+      })
+      setItems(itemsData)
+      setCacheData(itemsData)
+    }
+  }
+
+
+
 
   const search = (e: string) => {
-    if (e.length > 3) {
-      setItem({ ...item, loading: true });
-      const data =flatenItems.filter((f: any) =>
-        changeToLower(f.title).includes(changeToLower(e)) ||   changeToLower(f.category).includes(changeToLower(e))
-      );
-      setItem({ ...item, loading: false, data: data });
+    if (e.length > 1) {
+      const dataItems = cachedData.filter(f => (changeToLower(f.title)).includes(changeToLower(e))
+        || (changeToLower(f.category.name)).includes(changeToLower(e)))
+      setItems(dataItems)
     }
+    else setItems(cachedData)
   };
 
-  const changeToLower = (text: string) => `${text}`.toLocaleLowerCase();
+  const changeToLower = (text: string) => `${text}`.toLowerCase();
 
   return (
     <View style={{ backgroundColor: "white", flex: 1 }}>
@@ -59,7 +191,7 @@ export default function Search(props: any) {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: constants.light,
+            backgroundColor: color.light,
             padding: 6,
             minHeight: 40,
             borderRadius: 30,
@@ -98,7 +230,7 @@ export default function Search(props: any) {
               justifyContent: "space-between",
             }}
           >
-            {item.loading ? (
+            {loading ? (
               <View
                 style={{
                   flex: 1,
@@ -109,7 +241,7 @@ export default function Search(props: any) {
               >
                 <Loading />
               </View>
-            ) : item.data.length <= 0 ? (
+            ) : items.length <= 0 ? (
               <View
                 style={{
                   flex: 1,
@@ -129,7 +261,7 @@ export default function Search(props: any) {
                 </Text>
               </View>
             ) : (
-              item.data.map((x: any, i: number) => (
+              items.map((x: any, i: number) => (
                 <TouchableOpacity
                   key={i}
                   style={{
@@ -144,7 +276,7 @@ export default function Search(props: any) {
                 >
                   <View style={{ borderWidth: 1, borderColor: "#edf2f7" }}>
                     <Image
-                      source={{ uri: x.img }}
+                      source={{ uri: `${constants.API_ROOT}${x.pictures[x.pictures.length - 1].url}` }}
                       style={{
                         height: width / 2.2,
                         width: "100%",
@@ -160,7 +292,7 @@ export default function Search(props: any) {
                     }}
                   >
                     <Text style={{ fontWeight: "800", fontSize: 18 }}>
-                      {x.price}{" "}
+                      {x.currency} {x.price}{" "}
                     </Text>
                     <Text
                       numberOfLines={1}

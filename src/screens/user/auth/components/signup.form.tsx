@@ -1,30 +1,34 @@
-import { gql, useMutation } from "@apollo/client";
+import { gql, useMutation, } from "@apollo/client";
 import { useNavigation } from "@react-navigation/native";
 import React, { useRef, useState } from "react";
 import { View } from "react-native";
 import PhoneInput from "react-native-phone-number-input";
 
 
-import { Button, Dropdown, Input, Loading, SelectDialog } from "../../../../components";
-import { useAuth } from "../../../../context/auth.context";
-import auth from "../../../../service/auth.services";
+import { Button, Input, Loading, SelectDialog } from "../../../../components";
 import { validator } from "../../../../utils";
+import auth from "../../../../service/auth.services";
+import { usePopup } from "../../../../context/popup.context";
+import { useAuth } from "../../../../context/auth.context";
 
 
-const USER_QUERY = gql`
-    mutation Login($input: LoginInput!) {
-      login(input: $input) {
-        id
-        token
+const REGISTER_MUTATION = gql`
+   mutation Signup($input:UsersPermissionsRegisterInput!) {
+      register(input: $input) {
+      jwt
+        user{
+            id
+            username
+            email
+        }
       }
     }
 `
 
 export default function SignupForm(props: any) {
-    const navigation:any=useNavigation()
+    const navigation: any = useNavigation()
     const phoneInput = useRef(null);
-    const { checkUserAuthentication } = useAuth();
-    const [signining, setSigninig] = useState(false)
+    const [signingup, setSigninigup] = useState(false)
     const [user, setUser] = useState({
         firstName: "",
         lastName: "",
@@ -42,9 +46,43 @@ export default function SignupForm(props: any) {
         gender: true, password: true
     })
 
+    const [Register] = useMutation(REGISTER_MUTATION, {
+        onCompleted: (data) => {
+            const response = {
+                id: data.register.user.id,
+                token: data.register.jwt
+            }
+            auth.setUser(response)
+            setSigninigup(false)
+            navigation.navigate("FinishSignup", { payload: {...user,id:response.id} })
+        },
+        onError: (err) => {
+            console.log("Reg error: ", err)
+            showPopup(
+                "Registration Error",
+                `Dear ${user.firstName} we are unable to finish registration. Try again. Make sure your you don't have an account with this email and phone number`, "error",
 
+            )
+            setSigninigup(false)
+        }
+    });
     const signup = () => {
-     navigation.navigate("FinishSignup",{payload:user})
+        setSigninigup(true)
+        Register({
+            variables: {
+                "input": { username: user.email, email: user.email, password: user.password }
+            }
+        });
+    }
+
+    const { openPopup } = usePopup();
+    const showPopup = (title, subtitle, type) => {
+        openPopup({
+            title: title,
+            subtitle: subtitle,
+            btnText: "Continue",
+            type: type,
+        });
     }
 
     return (
@@ -139,8 +177,8 @@ export default function SignupForm(props: any) {
             </View>
 
             <View style={{ padding: 10, width: "100%", paddingBottom: 30 }}>
-                <Input mode 
-                label="Password"
+                <Input mode
+                    label="Password"
                     onchange={(e: string) => {
                         setIsValid({ ...isValid, password: validator.validatePassword(e) })
                         setUser({ ...user, password: e })
@@ -151,7 +189,7 @@ export default function SignupForm(props: any) {
             </View>
 
             <View style={{ padding: 10, paddingTop: 30 }}>
-                {signining ? (
+                {signingup ? (
                     <Loading />
                 ) : (
                     <Button

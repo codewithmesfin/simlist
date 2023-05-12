@@ -7,6 +7,7 @@ import { Button, Input, Loading } from "../../../../components";
 import { useAuth } from "../../../../context/auth.context";
 import auth from "../../../../service/auth.services";
 import { validator } from "../../../../utils";
+import { usePopup } from "../../../../context/popup.context";
 
 
 const USER_QUERY = gql`
@@ -19,6 +20,7 @@ const USER_QUERY = gql`
 
 
 export default function SigninForm(props: any) {
+  const { openPopup } = usePopup();
   const { checkUserAuthentication } = useAuth();
   const [signining, setSigninig] = useState(false)
   const [user, setUser] = useState({ email: "", password: "" });
@@ -34,6 +36,11 @@ export default function SigninForm(props: any) {
       setSigninig(false)
     },
     onError: (err) => {
+      showPopup(
+        "Sign in error",
+        `Dear valued customer, we regret to inform you that we encountered difficulties in authenticating your credentials. To ensure a seamless experience, please review the email and password you entered and attempt the login process once more.`,
+        "error"
+      )
       setSigninig(false)
     }
   });
@@ -42,8 +49,17 @@ export default function SigninForm(props: any) {
     setSigninig(true)
     Login({
       variables: {
-        "input": { identifier: user.email, password: user.password }
+        "input": { identifier: `${user.email}`.trim().toLowerCase(), password: user.password }
       }
+    });
+  }
+
+  const showPopup = (title, subtitle, type) => {
+    openPopup({
+      title: title,
+      subtitle: subtitle,
+      btnText: "Continue",
+      type: type,
     });
   }
 

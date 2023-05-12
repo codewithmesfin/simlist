@@ -128,10 +128,8 @@ interface ITEM {
 export default function Item(props: any) {
   const { id } = props.route.params;
 
-
-  const [sliderState, setSliderState] = useState({ currentPage: 0 });
-
-  const setSliderPage = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const [sliderState, setSliderState] = useState({ currentPage: 0 });
+    const setSliderPage = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { currentPage } = sliderState;
     const { x } = event.nativeEvent.contentOffset;
     const indexOfNextScreen = Math.floor(x / width);
@@ -142,10 +140,8 @@ export default function Item(props: any) {
       });
     }
   };
+  
   const { currentPage: pageIndex } = sliderState;
-
-
-
   const { data, loading, error } = useQuery<any>(
     ITEM_QUERY,
     { variables: { id: id }, }
@@ -664,7 +660,7 @@ export default function Item(props: any) {
                 </View>
 
                 <View style={{ paddingTop: 20 }}>
-                {!loading && !error &&  <ItemsComponent category={{id:item?.category?.id}} />}
+                  {!loading && !error && <ItemsComponent category={{ id: item?.category?.id }} />}
                 </View>
               </View>
             </View>
